@@ -12,12 +12,17 @@
 ## 📋 Core Problems to Solve
 
 1. **Tracking Chaos**: Lost track of who owes what, to whom, and how much
-2. **Due Date Management**: Missing payment deadlines
-3. **Account Timing**: Forgetting to transfer money between accounts in advance (accounting for transfer delays)
-4. **Payment Complexity**: Handling partial payments, payment plans, multiple payment methods
-5. **Financial Visibility**: Not knowing how much money is "safe to spend" vs. reserved for bills
-6. **Historical Records**: No organized history of payments to each person/business
-7. **Recurring Complexity**: Mix of recurring (various intervals) and one-time payments
+2. **Income Tracking**: No visibility into multiple income streams, when paychecks arrive, variable income
+3. **Due Date Management**: Missing payment deadlines
+4. **Account Timing**: Forgetting to transfer money between accounts in advance (accounting for transfer delays)
+5. **Payment Complexity**: Handling partial payments, payment plans, multiple payment methods
+6. **Financial Visibility**: Not knowing how much money is "safe to spend" vs. reserved for bills
+7. **Spending Planning**: Can't answer "If I buy this, how much will I have left before my next paycheck?"
+8. **Historical Records**: No organized history of payments to each person/business
+9. **Recurring Complexity**: Mix of recurring (various intervals) and one-time payments for both bills AND income
+10. **Date Range Flexibility**: Need to see what's coming in different timeframes (next 7/14/30/60/90 days)
+11. **Timezone Issues**: Need proper timezone support for accurate due dates and reminders
+12. **Interface Customization**: Everyone wants different views and layouts
 
 ---
 

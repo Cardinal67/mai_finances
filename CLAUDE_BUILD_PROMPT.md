@@ -19,12 +19,17 @@ I need you to build a complete self-hosted web application for personal finance 
 
 I'm terrible at managing my finances. I need an app to:
 1. Track all bills and payments (who I owe, who owes me, amounts, due dates)
-2. Manage partial payments and payment histories
-3. Tell me how much money is "safe to spend" (after reserving for upcoming bills)
-4. Remind me about due dates and when to transfer money between accounts (accounting for transfer delays)
-5. Track payment methods, accounts, and transaction confirmations
-6. Handle both recurring and one-time payments
-7. Provide complete history and search capabilities
+2. Track all income sources (paychecks, freelance, rental income, etc.) - multiple streams
+3. Manage partial payments and payment histories
+4. Tell me how much money is "safe to spend" (after reserving for upcoming bills)
+5. Plan spending with what-if scenarios ("If I buy this, how much will I have left before my next paycheck?")
+6. Remind me about due dates and when to transfer money between accounts (accounting for transfer delays)
+7. Track payment methods, accounts, and transaction confirmations
+8. Handle both recurring and one-time payments (bills AND income)
+9. Provide complete history and search capabilities
+10. Flexible date range viewing (see what's coming in next 7/14/30/60/90 days or custom range)
+11. Full timezone support (I may travel or move)
+12. Customizable interface (show/hide widgets, adjust display, personalize experience)
 
 ### Technology Requirements
 
@@ -254,6 +259,64 @@ Please implement these tables with proper relationships, indexes, and constraint
 - created_at
 - last_used (timestamp, nullable)
 
+#### INCOME_STREAMS (Track income sources and paychecks)
+- id (primary key, UUID)
+- user_id (foreign key → USERS)
+- source_name (e.g., "Primary Job", "Freelance", "Rental Income")
+- source_type (enum: salary, wages, freelance, business, rental, investment, gift, other)
+- amount (decimal - amount per payment)
+- is_variable (boolean - true if amount varies each time)
+- to_account_id (foreign key → ACCOUNTS - which account receives it)
+- is_recurring (boolean)
+- recurrence_pattern (enum: daily, weekly, biweekly, monthly, quarterly, yearly, custom)
+- recurrence_interval (integer, nullable)
+- next_expected_date (date)
+- recurrence_end_date (date, nullable)
+- tax_withholding (decimal, nullable)
+- notes (text)
+- is_active (boolean)
+- created_at
+- updated_at
+
+#### INCOME_TRANSACTIONS (Individual income receipts)
+- id (primary key, UUID)
+- income_stream_id (foreign key → INCOME_STREAMS)
+- received_date (timestamp)
+- amount (decimal)
+- to_account_id (foreign key → ACCOUNTS)
+- confirmation_number (text, nullable)
+- notes (text, nullable)
+- created_at
+
+#### SPENDING_PLANS (What-if scenarios and planned purchases)
+- id (primary key, UUID)
+- user_id (foreign key → USERS)
+- plan_name (text - e.g., "New Laptop Purchase")
+- planned_amount (decimal)
+- planned_date (date, nullable)
+- from_account_id (foreign key → ACCOUNTS, nullable)
+- category_id (foreign key → CATEGORIES, nullable)
+- status (enum: planned, completed, cancelled)
+- notes (text, nullable)
+- created_at
+- completed_at (timestamp, nullable)
+
+#### USER_PREFERENCES (Detailed user settings beyond basic USERS.settings)
+- id (primary key, UUID)
+- user_id (foreign key → USERS)
+- timezone (text - e.g., "America/New_York")
+- date_range_preference (integer - default days to look ahead: 7/14/30/60/90)
+- safety_buffer_type (enum: fixed, percentage)
+- safety_buffer_amount (decimal)
+- default_currency (text - default "USD")
+- dashboard_widgets (JSONB - which widgets to show/hide, order)
+- table_columns (JSONB - which columns to show in tables)
+- display_density (enum: compact, comfortable, spacious)
+- theme (enum: light, dark, auto)
+- notification_preferences (JSONB)
+- created_at
+- updated_at
+
 ### Phase 1 Features (MVP - Build This Now)
 
 #### 1. User Authentication
@@ -263,34 +326,94 @@ Please implement these tables with proper relationships, indexes, and constraint
 - Basic profile page (view/edit email, change password)
 
 #### 2. Dashboard
+
+- **Global Date Range Selector** (Top of dashboard):
+  - Quick toggle buttons: [7 days] [14 days] [30 days] [60 days] [90 days] [Custom]
+  - Custom opens date picker for any range
+  - Affects: Upcoming bills, upcoming income, safe-to-spend calculation
+  - Saves user's preference
+  - Shows current selection prominently
+
+- **Timezone Display** (Top right):
+  - Shows current timezone (e.g., "EST 3:42 PM")
+  - Click to change timezone temporarily
+  - All dates/times displayed in user's selected timezone
+  - Stored in user preferences
+
 - **Safe-to-Spend Widget**: Show total "safe to spend" amount across all accounts
-  - Calculate: Current Balance - Reserved for Upcoming Bills - Pending Transfers + Safety Buffer
-  - Allow user to configure: time horizon (7/14/30 days) and safety buffer amount
+  - Calculate: Current Balance - Reserved for Upcoming Bills - Pending Transfers - Safety Buffer + Expected Income (optional toggle)
+  - Allow user to configure: time horizon (uses global date range), safety buffer amount/percentage
   - Display breakdown per account
+  - Option to include/exclude upcoming income in calculation
+  - Color indicator: Green (plenty), Yellow (caution), Red (negative/need action)
   
-- **Upcoming Bills Section**: Show bills due in next 7/14/30 days (user configurable)
-  - Group by: Today, Next 3 Days, Next 7 Days, Next 30 Days
-  - Color-code: Red (overdue), Orange (due today/tomorrow), Yellow (due soon), Green (paid)
-  - Show: Contact name, amount, due date, status
+- **What-If Spending Calculator Widget**: Plan purchases
+  - Input field: "Amount to spend: $____"
+  - Optional: From which account? [dropdown]
+  - Optional: Planned date: [date picker]
+  - Shows results:
+    * Current safe-to-spend: $X
+    * After this purchase: $Y
+    * Remaining until next income: $Z
+    * Next income: [Date] (+$Amount from [Source])
+    * Balance after upcoming bills: $W
+  - Warning indicators:
+    * ⚠️ "This would put you below your safety buffer"
+    * ⚠️ "You won't have enough for [Bill Name] due [Date]"
+    * 💡 "Suggestion: Wait until [Date] (next paycheck)"
+  - Option to save as "Planned Purchase" for tracking
+  - Quick action: [What if I spend more?] opens scenarios page
+
+- **Upcoming Bills Section**: Show bills due in selected date range
+  - Group by: Today, Tomorrow, Next 3 Days, Next 7 Days, This Month, Later
+  - Color-code: Red (overdue), Orange (due today/tomorrow), Yellow (due soon), Green (paid), Blue (scheduled)
+  - Show: Contact name, amount, due date, status, from account
   - Quick actions: [Pay Now] [Reschedule] [View Details]
+  - Summary: "X bills due in next [range] totaling $Y"
+  - Filter options: [All] [Unpaid Only] [By Account] [By Category]
+
+- **Upcoming Income Section**: Show expected income in selected date range
+  - List all income sources with next expected date
+  - Show: Source name, amount, expected date, to account, confidence level (fixed/variable)
+  - Variable income shows estimate with indicator
+  - Color-code: Green (confirmed received), Blue (expected), Gray (overdue - should have received)
+  - Quick actions: [Mark as Received] [Adjust Amount] [View Details]
+  - Summary: "Expecting $X from Y sources in next [range]"
+  - Highlight: "Next income: [Date] - [Source] (+$Amount)"
 
 - **Recent Activity Feed**: Last 10-20 activities
   - Payments recorded
+  - Income received
   - Due dates changed
   - Bills created/updated
   - Missed payment alerts
+  - Planned purchases added/completed
   - Interest accrued notices (Phase 2)
+  - Filter: [All] [Bills] [Income] [Plans]
 
 - **Accounts Overview**: Show all accounts with balances
-  - Display: Account name, total balance, reserved amount, safe-to-spend amount
-  - Quick actions: [Manage Accounts] [Transfer Money]
+  - Display: Account name, total balance, reserved amount, expected income, safe-to-spend amount
+  - Visual progress bar showing allocation
+  - Quick actions: [Manage Accounts] [Transfer Money] [Update Balance]
+  - Expandable details per account
 
-- **Alert Section**: Show warnings
+- **Alert Section**: Show warnings and notifications
   - Overdue payments
   - Bills due in next 3 days
+  - Expected income not received (overdue)
   - Interest accruing on overdue bills (Phase 2)
   - Low safe-to-spend balance
   - Failed payments
+  - Planned purchases approaching date
+  - Transfer reminders (X days before bill due)
+
+- **Dashboard Customization** (Options menu - gear icon):
+  - Show/hide any widget
+  - Reorder widgets (drag and drop)
+  - Resize widgets (small/medium/large)
+  - Save layout per user
+  - Reset to default layout
+  - Export/import layout settings
 
 #### 3. Payment Management (CRUD)
 - **Create Payment**:
@@ -332,7 +455,61 @@ Please implement these tables with proper relationships, indexes, and constraint
   - Allow viewing/downloading receipts
   - Total paid to date
 
-#### 5. Contact Management
+#### 5. Income Management (Track Multiple Income Streams)
+
+- **Create/Edit Income Source**:
+  - Form fields: Source name, Type (salary/wages/freelance/business/rental/investment/gift/other), Amount
+  - Is variable income? (checkbox - if checked, amount is estimate)
+  - To Account (which account receives this income)
+  - Recurring settings: Frequency (weekly/biweekly/monthly/quarterly/yearly), Interval, Next expected date, End date
+  - Tax withholding amount (optional, for tracking)
+  - Notes
+  - File attachment support (contracts, agreements)
+
+- **View Income Source Details**:
+  - Show all source info
+  - Income history (all received payments from this source)
+  - Next expected income date and amount
+  - Year-to-date totals
+  - Average income amount (if variable)
+  - Reliability indicator (on-time percentage)
+  - Quick actions: [Mark as Received] [Edit Source] [Delete] [View History]
+
+- **Mark Income as Received**:
+  - Modal opens when marking income received
+  - Fields: Received date (default today), Actual amount (prefilled with expected), To account, Confirmation number, Notes
+  - Creates INCOME_TRANSACTION record
+  - Updates account balance (optional auto-update or manual)
+  - Auto-generates next expected income if recurring
+  - Logs in activity feed
+
+- **Income List Page**:
+  - Table view: Source name, Type, Amount, Frequency, Next expected, Account, Status, Actions
+  - Filters: Active/Inactive, Type, Account, Recurring/One-time
+  - Sort: Next expected date, Amount, Source name, Created date
+  - Summary card: Total expected income (next 30 days), Number of sources, YTD total received
+  - Quick action: [+ Add Income Source]
+
+- **Income History View** (per source):
+  - Timeline of all received income from this source
+  - Show: Date received, Amount, Confirmation, Account, Running YTD total
+  - Compare expected vs. actual amounts
+  - Flag any late or missing income
+  - Export to CSV
+
+- **Recurring Income Auto-Generation** (scheduled job):
+  - Daily cron job checks for income sources where next expected date is approaching
+  - Creates reminder/notification (on dashboard)
+  - After marked as received, auto-generates next expected income entry
+  - Handles biweekly, monthly, quarterly, yearly patterns
+  - Updates next_expected_date in INCOME_STREAMS
+
+- **Income Dashboard Widget** (already in Dashboard section):
+  - Shows next X days of expected income
+  - Quick mark-as-received action
+  - Alerts for overdue income (expected but not received)
+
+#### 6. Contact Management
 - **Create/Edit Contact**:
   - Form: Name, Type, Email, Phone, Address, Account number, Website, Payment portal URL, Notes
   
@@ -574,6 +751,140 @@ Please implement these tables with proper relationships, indexes, and constraint
   - Validate file types
   - Sanitize filenames
 
+#### 16. User Preferences & Customization (Complete Interface Control)
+
+- **General Settings Page** (`/settings`):
+  
+  **Account Settings:**
+  - Change email
+  - Change password
+  - Change username
+  - Delete account (with confirmation)
+  
+  **Regional Settings:**
+  - Timezone selector (dropdown with search)
+    * Auto-detect from browser (default)
+    * Manual selection from all timezones
+    * Show current local time
+    * Option to temporarily change (for travel)
+    * All dates/times throughout app display in selected timezone
+  - Currency (default USD, but allow others)
+  - Date format (MM/DD/YYYY, DD/MM/YYYY, YYYY-MM-DD)
+  - Time format (12-hour, 24-hour)
+  - First day of week (Sunday/Monday)
+  
+  **Financial Preferences:**
+  - Default date range for upcoming views (7/14/30/60/90 days or custom)
+  - Safety buffer type (fixed amount or percentage)
+  - Safety buffer amount ($ or %)
+  - Include expected income in safe-to-spend? (Yes/No toggle)
+  - Low balance threshold (alert when safe-to-spend below $X)
+  - Default payment method
+  - Default account for bills
+  
+  **Dashboard Customization:**
+  - Widget visibility (show/hide each widget):
+    * Safe-to-spend calculator
+    * What-if spending planner
+    * Upcoming bills
+    * Upcoming income
+    * Recent activity
+    * Accounts overview
+    * Alerts
+    * Quick actions
+  - Widget order (drag and drop to reorder)
+  - Widget size (small/medium/large for each)
+  - Save as default layout
+  - Reset to system default
+  - Export layout (JSON)
+  - Import layout (JSON)
+  
+  **Display Preferences:**
+  - Display density:
+    * Compact (more content, less spacing)
+    * Comfortable (balanced - default)
+    * Spacious (more spacing, less content per screen)
+  - Theme:
+    * Light mode (default)
+    * Dark mode
+    * Auto (follows system preference)
+  - Font size (Small/Medium/Large)
+  - Color scheme preference (accent color picker)
+  
+  **Table/List Preferences:**
+  - Default rows per page (10/25/50/100)
+  - Column visibility per page type:
+    * Payments list (show/hide: description, amount, due date, status, account, category, etc.)
+    * Income list (show/hide: source, amount, next expected, account, type, etc.)
+    * Contacts list (show/hide: name, type, email, phone, last payment, etc.)
+  - Default sort preference (per list type)
+  - Default filter (e.g., show only unpaid bills by default)
+  - Save column widths
+  
+  **Calendar Preferences:**
+  - Default view (Month/Week/Day)
+  - Color coding preference (by status, by category, by account)
+  - Show amounts on calendar (Yes/No)
+  - Show only unpaid bills (Yes/No)
+  - Include income on calendar (Yes/No)
+  
+  **Notification Preferences:**
+  - Dashboard alerts:
+    * Show overdue payments (Yes/No)
+    * Show bills due soon (Yes/No + how many days)
+    * Show low balance warnings (Yes/No)
+    * Show expected income not received (Yes/No)
+    * Show planned purchases approaching (Yes/No)
+  - Email notifications (Phase 2):
+    * Enable/disable
+    * Notification types
+    * Frequency
+  - Reminder settings:
+    * Default days before bill due (e.g., 7, 3, 1)
+    * Reminder time (e.g., 9:00 AM)
+    * Days before to remind about transfers (based on account transfer time)
+  
+  **Data & Privacy:**
+  - Export all data (JSON/CSV)
+  - Download backup
+  - View audit log (all changes you've made)
+  - Clear cache
+  - Delete old data (payments/income older than X years)
+  
+  **Advanced:**
+  - Enable experimental features (Phase 2+)
+  - Debug mode (show additional info for troubleshooting)
+  - API access (Phase 2 - generate API key for external tools)
+
+- **Quick Settings** (accessible from top right menu):
+  - Timezone quick switch
+  - Date range quick change
+  - Theme toggle (light/dark)
+  - Display density toggle
+
+- **Contextual Settings** (options menus throughout app):
+  - Each page has ⚙️ icon for page-specific settings
+  - Examples:
+    * Payment list: Column visibility, default filters
+    * Calendar: View type, color scheme
+    * Dashboard: Widget management
+  
+- **Settings Persistence**:
+  - All settings saved to USER_PREFERENCES table
+  - Synced across devices (stored server-side)
+  - Settings backup included in data export
+  - Settings can be reset to defaults
+
+- **First-Time Setup Wizard** (optional, on first login):
+  - Welcome screen
+  - Set timezone
+  - Set currency and date format
+  - Configure safety buffer
+  - Choose default date range
+  - Select theme
+  - Dashboard layout quick-pick (presets: Minimal, Balanced, Detailed)
+  - Skip option available
+
 ### User Interface Requirements
 
 #### Design Guidelines
@@ -715,6 +1026,36 @@ Please implement these tables with proper relationships, indexes, and constraint
 - POST `/api/transfers` - Create transfer
 - PUT `/api/transfers/:id` - Update transfer status
 
+#### Income Streams
+- GET `/api/income` - List all income sources (with filters, pagination)
+- POST `/api/income` - Create new income source
+- GET `/api/income/:id` - Get income source details
+- PUT `/api/income/:id` - Update income source
+- DELETE `/api/income/:id` - Delete income source
+- POST `/api/income/:id/receive` - Mark income as received (creates transaction)
+- GET `/api/income/:id/transactions` - Get all transactions for income source
+- GET `/api/income/:id/history` - Get income history
+- GET `/api/income/upcoming` - Get upcoming expected income (with date range)
+- GET `/api/income/stats` - Get income statistics (YTD, averages, etc.)
+
+#### Spending Plans
+- GET `/api/spending-plans` - List all spending plans
+- POST `/api/spending-plans` - Create new spending plan (save what-if scenario)
+- GET `/api/spending-plans/:id` - Get spending plan details
+- PUT `/api/spending-plans/:id` - Update spending plan
+- DELETE `/api/spending-plans/:id` - Delete spending plan
+- POST `/api/spending-plans/:id/complete` - Mark plan as completed
+- POST `/api/spending-plans/calculate` - Calculate what-if scenario (doesn't save)
+
+#### User Preferences
+- GET `/api/preferences` - Get all user preferences
+- PUT `/api/preferences` - Update preferences (full or partial)
+- GET `/api/preferences/dashboard-layout` - Get dashboard layout
+- PUT `/api/preferences/dashboard-layout` - Update dashboard layout
+- POST `/api/preferences/reset` - Reset to defaults
+- GET `/api/preferences/export` - Export preferences as JSON
+- POST `/api/preferences/import` - Import preferences from JSON
+
 #### Settings
 - GET `/api/settings` - Get user settings
 - PUT `/api/settings` - Update settings
@@ -726,19 +1067,49 @@ Implement these background jobs:
 1. **Daily Missed Payment Check** (runs at 1:00 AM):
    - Check for payments where current_due_date < TODAY and status = 'unpaid'
    - Update status to 'missed', set missed_date, increment late_payment_count
+   - Create dashboard alert for overdue payments
 
-2. **Daily Reminder Check** (runs at 9:00 AM):
+2. **Daily Expected Income Check** (runs at 1:15 AM):
+   - Check for income streams where next_expected_date < TODAY and not marked as received
+   - Flag as overdue/late income
+   - Create dashboard alert for missing income
+   - Track reliability score for income sources
+
+3. **Daily Reminder Check** (runs at 9:00 AM, user's timezone):
    - Find reminders where reminder_date = TODAY and is_sent = false
    - Mark as sent (for dashboard display)
+   - Create reminder for income expected today
+   - Create reminder for bills due today
    - Later: Send emails
 
-3. **Daily Recurring Payment Generation** (runs at 2:00 AM):
+4. **Daily Recurring Payment Generation** (runs at 2:00 AM):
    - Find recurring payments where next occurrence should be created
    - Create new payment records
+   - Respect user's timezone for due dates
 
-4. **Daily Safe-to-Spend Calculation** (runs at 3:00 AM):
+5. **Daily Recurring Income Generation** (runs at 2:15 AM):
+   - Find recurring income streams where next occurrence is approaching
+   - Update next_expected_date for tracking
+   - Create income reminders (on dashboard)
+   - Handle biweekly, monthly, quarterly, yearly patterns
+
+6. **Daily Safe-to-Spend Calculation** (runs at 3:00 AM):
    - Recalculate safe_to_spend for all accounts
+   - Factor in upcoming bills (based on user's date range preference)
+   - Optionally factor in expected income (based on user preference)
    - Cache results for fast dashboard loading
+   - Flag accounts with negative safe-to-spend
+   - Generate low balance alerts
+
+7. **Daily Timezone Updates** (runs at midnight UTC):
+   - Handle daylight saving time changes
+   - Update all scheduled job times based on user timezones
+   - Log timezone transitions for audit
+
+8. **Weekly Spending Plan Review** (runs Sunday at 8:00 AM, user's timezone):
+   - Check spending plans with planned dates in upcoming week
+   - Create reminders for planned purchases
+   - Flag plans that might conflict with bills
 
 ### Setup & Installation Requirements
 
@@ -979,6 +1350,101 @@ The application is complete when:
 13. ✅ Mobile-responsive and works perfectly on phone
 14. ✅ File attachments work (upload, view, download)
 15. ✅ Sensitive data (account numbers) is encrypted in database
+16. ✅ Income tracking works (can add sources, mark as received)
+17. ✅ What-if spending calculator shows impact of purchases
+18. ✅ Date range selector works and affects all relevant views
+19. ✅ Timezone setting works (all dates display in user's timezone)
+20. ✅ Customization options work (dashboard layout, table columns, theme, etc.)
+
+### Building in Cursor - Context Window Strategy
+
+**You are being run in Cursor**, which has excellent context window management. Here's how to handle this build:
+
+**Approach: Build Everything with Smart Progress Tracking**
+
+Since Cursor can handle large builds well and automatically manages context:
+
+1. **Build in logical order**:
+   - Start with database migrations (all tables)
+   - Then backend structure (server, auth, middleware)
+   - Then core API routes (payments, contacts, accounts)
+   - Then new features (income, spending plans, preferences)
+   - Then frontend structure (routing, auth, context)
+   - Then core pages (dashboard, payments, income)
+   - Then remaining pages (calendar, search, settings)
+   - Finally Docker configuration and documentation
+
+2. **Create a PROGRESS.md file** to track what's completed:
+   ```markdown
+   # Build Progress
+   
+   ## Completed
+   - [x] Database migrations
+   - [x] Backend authentication
+   - [x] Payment API routes
+   - [ ] Income API routes (in progress)
+   
+   ## Pending
+   - [ ] Spending calculator
+   - [ ] Frontend dashboard
+   ...
+   
+   ## Current Status
+   Working on: Income API implementation
+   Next: Spending plans API
+   ```
+
+3. **If you need to split work across multiple responses**:
+   - Complete one logical unit (e.g., all database migrations)
+   - Update PROGRESS.md
+   - State clearly: "Completed X, resuming with Y in next response"
+   - Continue seamlessly
+
+4. **Priority order if time/space constrained**:
+   - ✅ Database schema (all 21 tables - MUST BE COMPLETE)
+   - ✅ Backend auth & core infrastructure
+   - ✅ Payment management API (CRUD + transactions)
+   - ✅ Income management API (CRUD + tracking)
+   - ✅ Account management API
+   - ✅ Contact management API
+   - ✅ Dashboard API with calculations
+   - ✅ Spending calculator logic
+   - ✅ Preferences API
+   - ✅ Frontend core (auth, routing, API layer)
+   - ✅ Dashboard UI (with all widgets)
+   - ✅ Payment management UI
+   - ✅ Income management UI
+   - ✅ Settings/Preferences UI
+   - ✅ Scheduled jobs (all 8 jobs)
+   - ✅ Calendar, search, other pages
+   - ✅ Docker configuration
+   - ✅ README and setup docs
+
+5. **Code quality expectations**:
+   - Production-ready code (not prototypes)
+   - Proper error handling throughout
+   - Input validation on all endpoints
+   - Security best practices (encryption, sanitization, parameterized queries)
+   - Responsive UI that works on mobile
+   - Clean, maintainable, well-commented code
+
+6. **Testing reminders**:
+   - Include example API calls in comments
+   - Provide seed data for testing
+   - Document any assumptions made
+
+7. **If you complete everything**:
+   - Review PROGRESS.md and mark all items complete
+   - Provide final summary of what was built
+   - List file count and structure
+   - Highlight any deviations from spec (with reasons)
+   - Provide clear "next steps" for deployment
+
+**Notes for Cursor:**
+- This is a large build (~70 files, 6000-8000 lines of code)
+- Estimated completion: Can be done in one session with Cursor's context management
+- Feel free to work through it systematically
+- Update PROGRESS.md as you go so we can track if anything is interrupted
 
 ### Deliverables
 
