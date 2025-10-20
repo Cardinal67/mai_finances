@@ -24,7 +24,13 @@ async function getCalendar(req, res) {
         if (includeTypes.includes('payments')) {
             const paymentsResult = await db.query(
                 `SELECT p.id, p.description as title, p.current_due_date as date, 
-                        p.current_balance as amount, p.status, p.payment_type,
+                        p.original_amount - COALESCE(
+                            (SELECT SUM(pt.amount) 
+                             FROM PAYMENT_TRANSACTIONS pt 
+                             WHERE pt.payment_id = p.id AND pt.transaction_type = 'payment'), 
+                            0
+                        ) as amount, 
+                        p.status, p.payment_type,
                         c.current_name as contact_name,
                         'payment' as event_type
                  FROM PAYMENTS p
