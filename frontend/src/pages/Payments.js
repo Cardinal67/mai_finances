@@ -16,6 +16,7 @@ const Payments = () => {
     original_amount: '',
     due_date: '',
     payment_type: 'owed_by_me',
+    payment_method: '',
     notes: '',
   });
 
@@ -54,6 +55,7 @@ const Payments = () => {
         original_amount: '',
         due_date: '',
         payment_type: 'owed_by_me',
+        payment_method: '',
         notes: '',
       });
       loadData();
@@ -71,6 +73,7 @@ const Payments = () => {
       original_amount: payment.original_amount,
       due_date: payment.due_date.split('T')[0],
       payment_type: payment.payment_type,
+      payment_method: payment.payment_method || '',
       notes: payment.notes || '',
     });
     setShowModal(true);
@@ -94,12 +97,12 @@ const Payments = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">💰 Payments</h1>
+        <h1 className="text-3xl font-bold text-gray-900">💰 Expenses</h1>
         <button
           onClick={() => setShowModal(true)}
           className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700"
         >
-          + New Payment
+          + New Expense
         </button>
       </div>
 
@@ -149,13 +152,12 @@ const Payments = () => {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed z-10 inset-0 overflow-y-auto">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowModal(false)}></div>
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+        <div className="fixed z-10 inset-0 overflow-y-auto flex items-center justify-center">
+          <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowModal(false)}></div>
+          <div className="relative bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all max-w-lg w-full mx-4">
               <form onSubmit={handleSubmit}>
                 <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">{selectedPayment ? 'Edit' : 'New'} Payment</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">{selectedPayment ? 'Edit' : 'New'} Expense</h3>
                   <div className="space-y-4">
                     {showQuickAdd ? (
                       <ContactQuickAdd 
@@ -201,6 +203,18 @@ const Payments = () => {
                       <select value={formData.payment_type} onChange={(e) => setFormData({...formData, payment_type: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
                         <option value="owed_by_me">I Owe</option>
                         <option value="owed_to_me">Owed to Me</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Payment Method (Optional)</label>
+                      <select value={formData.payment_method} onChange={(e) => setFormData({...formData, payment_method: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                        <option value="">Select method...</option>
+                        <option value="credit_card">💳 Credit Card</option>
+                        <option value="debit_card">💳 Debit Card</option>
+                        <option value="bank_account">🏦 Bank Account</option>
+                        <option value="cash">💵 Cash</option>
+                        <option value="check">✔️ Check</option>
+                        <option value="other">📝 Other</option>
                       </select>
                     </div>
                     <div>

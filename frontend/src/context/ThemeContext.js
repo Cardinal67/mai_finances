@@ -159,16 +159,25 @@ export const ThemeProvider = ({ children }) => {
       localStorage.setItem('customTheme', JSON.stringify(newTheme));
       
       // Convert theme to JSON string for backend storage
-      await preferencesAPI.update({ custom_theme: JSON.stringify(newTheme) });
+      const themeString = JSON.stringify(newTheme);
+      console.log('Saving theme:', themeString);
+      await preferencesAPI.update({ custom_theme: themeString });
     } catch (error) {
       console.error('Failed to save theme:', error);
+      console.error('Error details:', error.response?.data);
       throw error;
     }
   };
 
-  const selectPreset = (presetName) => {
+  const selectPreset = async (presetName) => {
     const preset = presetThemes[presetName] || defaultTheme;
-    updateTheme(preset);
+    try {
+      await updateTheme(preset);
+    } catch (error) {
+      console.error('Failed to select preset:', presetName, error);
+      // Revert to previous theme on error
+      applyTheme(theme);
+    }
   };
 
   const resetTheme = () => {

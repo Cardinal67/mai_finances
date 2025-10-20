@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 
 const navigation = [
   { name: 'Dashboard', path: '/dashboard', icon: '📊' },
-  { name: 'Payments', path: '/payments', icon: '💰' },
+  { name: 'Expenses', path: '/payments', icon: '💰' },
   { name: 'Income', path: '/income', icon: '💵' },
   { name: 'Accounts', path: '/accounts', icon: '🏦' },
   { name: 'Credit Cards', path: '/credit-cards', icon: '💳' },
