@@ -18,6 +18,7 @@ const Income = () => {
     recurrence_pattern: 'monthly',
     next_expected_date: '',
     notes: '',
+    cash_type: 'cash_in_hand', // 'cash_in_hand' or 'cash_deposit'
   });
 
   useEffect(() => {
@@ -42,10 +43,14 @@ const Income = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Prepare form data, ensuring to_account_id is null for cash
+      // Prepare form data
       const submitData = {
         ...formData,
-        to_account_id: formData.source_type === 'cash' ? null : (formData.to_account_id || null)
+        // For cash in hand, always set to_account_id to null
+        // For cash deposit or other types, use the selected account (or null if none)
+        to_account_id: (formData.source_type === 'cash' && formData.cash_type === 'cash_in_hand') 
+          ? null 
+          : (formData.to_account_id || null)
       };
       
       if (selectedIncome) {
@@ -74,11 +79,17 @@ const Income = () => {
       recurrence_pattern: 'monthly',
       next_expected_date: '',
       notes: '',
+      cash_type: 'cash_in_hand',
     });
   };
 
   const handleEdit = (income) => {
     setSelectedIncome(income);
+    // Determine cash_type based on whether income has a to_account_id
+    const cashType = (income.source_type === 'cash' && !income.to_account_id) 
+      ? 'cash_in_hand' 
+      : 'cash_deposit';
+    
     setFormData({
       source_name: income.source_name,
       source_type: income.source_type,
@@ -89,6 +100,7 @@ const Income = () => {
       recurrence_pattern: income.recurrence_pattern || 'monthly',
       next_expected_date: income.next_expected_date ? income.next_expected_date.split('T')[0] : '',
       notes: income.notes || '',
+      cash_type: cashType,
     });
     setShowModal(true);
   };
@@ -156,10 +168,12 @@ const Income = () => {
               {income.source_type === 'cash' && (
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-500">Type:</span>
-                  <span className="text-sm font-medium text-green-600">💵 Cash</span>
+                  <span className="text-sm font-medium text-green-600">
+                    {income.to_account_id ? '🏦 Cash Deposit' : '💵 Cash in Hand'}
+                  </span>
                 </div>
               )}
-              {income.to_account_name && income.source_type !== 'cash' && (
+              {income.to_account_name && (
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-500">To Account:</span>
                   <span className="text-sm text-gray-900">{income.to_account_name}</span>
@@ -195,8 +209,8 @@ const Income = () => {
                         setFormData({
                           ...formData, 
                           source_type: newType,
-                          // Clear account if switching to cash
-                          to_account_id: newType === 'cash' ? '' : formData.to_account_id
+                          // Reset cash_type when switching to/from cash
+                          cash_type: newType === 'cash' ? 'cash_in_hand' : formData.cash_type
                         });
                       }} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
                         <option value="salary">Salary</option>
@@ -220,29 +234,52 @@ const Income = () => {
                         <span className="ml-2 text-sm text-gray-700">Variable amount</span>
                       </label>
                     </div>
-                    {formData.source_type !== 'cash' && (
+                    
+                    {/* Cash Type Selection */}
+                    {formData.source_type === 'cash' && (
+                      <div className="space-y-3">
+                        <label className="block text-sm font-medium text-gray-700">Cash Type</label>
+                        <div className="space-y-2">
+                          <label className="flex items-center p-3 border rounded-md hover:bg-gray-50 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="cash_type"
+                              value="cash_in_hand"
+                              checked={formData.cash_type === 'cash_in_hand'}
+                              onChange={(e) => setFormData({...formData, cash_type: e.target.value, to_account_id: ''})}
+                              className="form-radio text-primary-600"
+                            />
+                            <div className="ml-3">
+                              <span className="block text-sm font-medium text-gray-900">💵 Cash in Hand</span>
+                              <span className="block text-xs text-gray-500">Keep as physical cash, no bank account</span>
+                            </div>
+                          </label>
+                          <label className="flex items-center p-3 border rounded-md hover:bg-gray-50 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="cash_type"
+                              value="cash_deposit"
+                              checked={formData.cash_type === 'cash_deposit'}
+                              onChange={(e) => setFormData({...formData, cash_type: e.target.value})}
+                              className="form-radio text-primary-600"
+                            />
+                            <div className="ml-3">
+                              <span className="block text-sm font-medium text-gray-900">🏦 Cash Deposit</span>
+                              <span className="block text-xs text-gray-500">Deposit cash to a bank account</span>
+                            </div>
+                          </label>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Bank Account Selection */}
+                    {(formData.source_type !== 'cash' || formData.cash_type === 'cash_deposit') && (
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Deposit To Account</label>
                         <select value={formData.to_account_id} onChange={(e) => setFormData({...formData, to_account_id: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
                           <option value="">Select account (optional)...</option>
                           {accounts.map(a => <option key={a.id} value={a.id}>{a.account_name}</option>)}
                         </select>
-                      </div>
-                    )}
-                    {formData.source_type === 'cash' && (
-                      <div className="rounded-md bg-blue-50 p-4">
-                        <div className="flex">
-                          <div className="flex-shrink-0">
-                            <svg className="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                            </svg>
-                          </div>
-                          <div className="ml-3 flex-1">
-                            <p className="text-sm text-blue-700">
-                              💵 <strong>Cash Income:</strong> No bank account needed. This income will be tracked as cash on hand.
-                            </p>
-                          </div>
-                        </div>
                       </div>
                     )}
                     <div>
