@@ -75,22 +75,6 @@ const Settings = () => {
         </div>
       )}
 
-      {/* Theme Builder Section */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <button
-          onClick={() => setThemeBuilderOpen(!themeBuilderOpen)}
-          className="w-full flex justify-between items-center p-6 hover:bg-gray-50 transition-colors"
-        >
-          <h2 className="text-lg font-medium text-gray-900">🎨 Custom Theme Builder</h2>
-          <span className="text-2xl text-gray-400">{themeBuilderOpen ? '▼' : '▶'}</span>
-        </button>
-        {themeBuilderOpen && (
-          <div className="p-6 pt-0 border-t border-gray-200">
-            <ThemeBuilder />
-          </div>
-        )}
-      </div>
-
       <form onSubmit={handleSave} className="space-y-6">
         {/* Regional Settings */}
         <div className="bg-white shadow rounded-lg p-6">
@@ -188,32 +172,51 @@ const Settings = () => {
         </div>
 
         {/* Display Preferences */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Display Preferences</h2>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Theme</label>
-              <select
-                value={preferences.theme}
-                onChange={(e) => setPreferences({...preferences, theme: e.target.value})}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-              >
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
-                <option value="auto">Auto</option>
-              </select>
+        <div className="bg-white shadow rounded-lg overflow-hidden">
+          <div className="p-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">Display Preferences</h2>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Theme</label>
+                <select
+                  value={preferences.theme}
+                  onChange={(e) => setPreferences({...preferences, theme: e.target.value})}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                >
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                  <option value="auto">Auto</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Display Density</label>
+                <select
+                  value={preferences.display_density}
+                  onChange={(e) => setPreferences({...preferences, display_density: e.target.value})}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                >
+                  <option value="compact">Compact</option>
+                  <option value="comfortable">Comfortable</option>
+                  <option value="spacious">Spacious</option>
+                </select>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Display Density</label>
-              <select
-                value={preferences.display_density}
-                onChange={(e) => setPreferences({...preferences, display_density: e.target.value})}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+
+            {/* Custom Theme Builder - Collapsible */}
+            <div className="border-t pt-4">
+              <button
+                type="button"
+                onClick={() => setThemeBuilderOpen(!themeBuilderOpen)}
+                className="w-full flex justify-between items-center py-2 hover:bg-gray-50 rounded transition-colors"
               >
-                <option value="compact">Compact</option>
-                <option value="comfortable">Comfortable</option>
-                <option value="spacious">Spacious</option>
-              </select>
+                <h3 className="text-md font-medium text-gray-900">🎨 Custom Theme Builder</h3>
+                <span className="text-xl text-gray-400">{themeBuilderOpen ? '▼' : '▶'}</span>
+              </button>
+              {themeBuilderOpen && (
+                <div className="mt-4">
+                  <ThemeBuilder />
+                </div>
+              )}
             </div>
           </div>
         </div>

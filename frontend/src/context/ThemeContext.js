@@ -112,10 +112,14 @@ export const ThemeProvider = ({ children }) => {
       // Then load from backend for sync
       const response = await preferencesAPI.get();
       const customTheme = response.data.data?.custom_theme;
-      if (customTheme && typeof customTheme === 'object') {
-        applyTheme(customTheme);
-        setTheme(customTheme);
-        localStorage.setItem('customTheme', JSON.stringify(customTheme));
+      if (customTheme) {
+        // Parse if it's a string, otherwise use as-is
+        const themeData = typeof customTheme === 'string' ? JSON.parse(customTheme) : customTheme;
+        if (themeData && themeData.colors) {
+          applyTheme(themeData);
+          setTheme(themeData);
+          localStorage.setItem('customTheme', JSON.stringify(themeData));
+        }
       }
     } catch (error) {
       console.error('Failed to load theme:', error);
@@ -138,7 +142,8 @@ export const ThemeProvider = ({ children }) => {
       applyTheme(newTheme);
       localStorage.setItem('customTheme', JSON.stringify(newTheme));
       
-      await preferencesAPI.update({ custom_theme: newTheme });
+      // Convert theme to JSON string for backend storage
+      await preferencesAPI.update({ custom_theme: JSON.stringify(newTheme) });
     } catch (error) {
       console.error('Failed to save theme:', error);
       throw error;
