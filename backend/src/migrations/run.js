@@ -5,6 +5,12 @@
 const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
+const dotenv = require('dotenv');
+
+// Load environment variables
+dotenv.config();
+
+console.log('🔍 DATABASE_URL:', process.env.DATABASE_URL);
 
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL

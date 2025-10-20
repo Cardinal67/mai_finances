@@ -1,25 +1,23 @@
-// Database Configuration
-// Created: 2025-10-20T00:08:00Z
-// Description: PostgreSQL connection pool configuration
-
 const { Pool } = require('pg');
+const dotenv = require('dotenv');
+
+dotenv.config();
 
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-    max: 20,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
-});
-
-pool.on('error', (err) => {
-    console.error('Unexpected error on idle client', err);
-    process.exit(-1);
+    ssl: false  // Disable SSL for local PostgreSQL
 });
 
 pool.on('connect', () => {
-    console.log('Database connected');
+    console.log('✅ Database connected successfully');
 });
 
-module.exports = pool;
+pool.on('error', (err) => {
+    console.error('❌ Unexpected database error:', err);
+    process.exit(-1);
+});
 
+module.exports = {
+    query: (text, params) => pool.query(text, params),
+    pool
+};

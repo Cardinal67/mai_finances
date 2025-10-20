@@ -1,42 +1,79 @@
-// Authentication Middleware
-// Created: 2025-10-20T00:11:00Z
-// Description: Verify JWT tokens and protect routes
+const jwt = require('jsonwebtoken');
+const dotenv = require('dotenv');
 
-const { verifyToken } = require('../config/jwt');
-const pool = require('../config/database');
+dotenv.config();
 
-async function authenticate(req, res, next) {
-    try {
-        const authHeader = req.headers.authorization;
-        
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({ error: 'No token provided' });
-        }
-        
-        const token = authHeader.substring(7);
-        const decoded = verifyToken(token);
-        
-        if (!decoded) {
-            return res.status(401).json({ error: 'Invalid or expired token' });
-        }
-        
-        // Fetch user from database
-        const result = await pool.query(
-            'SELECT id, username, email, settings FROM users WHERE id = $1 AND is_active = true',
-            [decoded.userId]
-        );
-        
-        if (result.rows.length === 0) {
-            return res.status(401).json({ error: 'User not found' });
-        }
-        
-        req.user = result.rows[0];
-        next();
-    } catch (error) {
-        console.error('Auth error:', error);
-        res.status(500).json({ error: 'Authentication failed' });
+const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_please_change';
+
+/**
+ * Middleware to verify JWT token and authenticate user
+ */
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+    if (!token) {
+        return res.status(401).json({ 
+            success: false, 
+            message: 'Access token required' 
+        });
     }
+
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'Invalid or expired token' 
+            });
+        }
+
+        req.user = user; // Add user info to request object
+        next();
+    });
 }
 
-module.exports = { authenticate };
+/**
+ * Generate JWT token for a user
+ * @param {object} user - User object with id, username, email
+ * @param {string} expiresIn - Token expiration time (default: 7 days)
+ * @returns {string} JWT token
+ */
+function generateToken(user, expiresIn = '7d') {
+    return jwt.sign(
+        { 
+            id: user.id, 
+            username: user.username, 
+            email: user.email 
+        },
+        JWT_SECRET,
+        { expiresIn }
+    );
+}
 
+/**
+ * Optional authentication - if token exists, verify it, but don't require it
+ */
+function optionalAuth(req, res, next) {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+        req.user = null;
+        return next();
+    }
+
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) {
+            req.user = null;
+        } else {
+            req.user = user;
+        }
+        next();
+    });
+}
+
+module.exports = {
+    authenticateToken,
+    generateToken,
+    optionalAuth
+};
