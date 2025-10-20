@@ -9,6 +9,7 @@ router.use(authenticateToken);
 
 // Payment CRUD
 router.get('/', paymentsController.getAllPayments);
+router.get('/recent-recipients', paymentsController.getRecentRecipients);
 router.post('/', paymentValidation, paymentsController.createPayment);
 router.get('/:id', paymentsController.getPaymentById);
 router.put('/:id', paymentsController.updatePayment);

@@ -109,7 +109,7 @@ const SpendingPlans = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">🎯 Spending Plans</h1>
+        <h1 className="text-3xl font-bold text-gray-900">🎯 Goals</h1>
         <button
           onClick={() => setShowModal(true)}
           className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700"

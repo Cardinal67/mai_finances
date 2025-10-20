@@ -24,9 +24,9 @@ async function getAllPayments(req, res) {
                    c.current_name as contact_name,
                    (SELECT COUNT(*) FROM PAYMENT_TRANSACTIONS pt WHERE pt.payment_id = p.id) as transaction_count,
                    (SELECT SUM(pt.amount) FROM PAYMENT_TRANSACTIONS pt WHERE pt.payment_id = p.id) as total_paid
-            FROM PAYMENTS p
-            JOIN CONTACTS c ON p.contact_id = c.id
-            WHERE p.user_id = $1
+             FROM PAYMENTS p
+             LEFT JOIN CONTACTS c ON p.contact_id = c.id
+             WHERE p.user_id = $1
         `;
         const params = [userId];
         let paramIndex = 2;
@@ -115,7 +115,7 @@ async function getPaymentById(req, res) {
                         WHERE pc.payment_id = p.id
                     ) cat) as categories
              FROM PAYMENTS p
-             JOIN CONTACTS c ON p.contact_id = c.id
+             LEFT JOIN CONTACTS c ON p.contact_id = c.id
              WHERE p.id = $1 AND p.user_id = $2`,
             [id, userId]
         );
@@ -147,11 +147,14 @@ async function createPayment(req, res) {
     const userId = req.user.id;
     const {
         contact_id,
+        expense_name,
+        recipient,
         description,
         original_amount,
         currency = 'USD',
         due_date,
         payment_type,
+        payment_method,
         is_recurring = false,
         recurrence_pattern,
         recurrence_interval,
@@ -161,34 +164,54 @@ async function createPayment(req, res) {
         category_ids = []
     } = req.body;
 
-    try {
-        // Verify contact belongs to user
-        const contactCheck = await db.query(
-            'SELECT id FROM CONTACTS WHERE id = $1 AND user_id = $2',
-            [contact_id, userId]
-        );
+    // Validate: Must have either expense_name or description
+    if (!expense_name && !description) {
+        return res.status(400).json({
+            success: false,
+            message: 'Expense name or description is required'
+        });
+    }
 
-        if (contactCheck.rows.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'Contact not found'
-            });
+    // Validate: Must have either contact_id or recipient
+    if (!contact_id && !recipient) {
+        return res.status(400).json({
+            success: false,
+            message: 'Either contact or recipient is required'
+        });
+    }
+
+    try {
+        // Verify contact belongs to user (if provided)
+        if (contact_id) {
+            const contactCheck = await db.query(
+                'SELECT id FROM CONTACTS WHERE id = $1 AND user_id = $2',
+                [contact_id, userId]
+            );
+
+            if (contactCheck.rows.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Contact not found'
+                });
+            }
         }
 
         // Create payment
         const result = await db.query(
             `INSERT INTO PAYMENTS (
-                user_id, contact_id, description, original_amount, current_balance,
-                currency, due_date, current_due_date, payment_type, status,
-                is_recurring, recurrence_pattern, recurrence_interval,
-                recurrence_end_date, notes, priority, created_at, updated_at
-            ) VALUES ($1, $2, $3, $4, $4, $5, $6, $6, $7, 'unpaid', $8, $9, $10, $11, $12, $13, 
-                      CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                user_id, contact_id, expense_name, recipient, description, 
+                original_amount, current_balance, currency, due_date, current_due_date, 
+                payment_type, payment_method, status, is_recurring, recurrence_pattern, 
+                recurrence_interval, recurrence_end_date, notes, priority, 
+                created_at, updated_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $6, $7, $8, $8, $9, $10, 'unpaid', 
+                      $11, $12, $13, $14, $15, $16, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             RETURNING *`,
             [
-                userId, contact_id, description, original_amount, currency,
-                due_date, payment_type, is_recurring, recurrence_pattern,
-                recurrence_interval, recurrence_end_date, notes, priority
+                userId, contact_id, expense_name, recipient, description,
+                original_amount, currency, due_date, payment_type, payment_method,
+                is_recurring, recurrence_pattern, recurrence_interval,
+                recurrence_end_date, notes, priority
             ]
         );
 
@@ -659,6 +682,36 @@ async function getPaymentHistory(req, res) {
     }
 }
 
+/**
+ * Get recent recipients for autocomplete
+ */
+async function getRecentRecipients(req, res) {
+    const userId = req.user.id;
+    const { limit = 20 } = req.query;
+
+    try {
+        const result = await db.query(
+            `SELECT DISTINCT recipient
+             FROM PAYMENTS
+             WHERE user_id = $1 AND recipient IS NOT NULL AND recipient != ''
+             ORDER BY created_at DESC
+             LIMIT $2`,
+            [userId, limit]
+        );
+
+        res.json({
+            success: true,
+            data: result.rows.map(r => r.recipient)
+        });
+    } catch (error) {
+        console.error('Get recent recipients error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error retrieving recent recipients'
+        });
+    }
+}
+
 module.exports = {
     getAllPayments,
     getPaymentById,
@@ -668,6 +721,7 @@ module.exports = {
     recordTransaction,
     getPaymentTransactions,
     reschedulePayment,
-    getPaymentHistory
+    getPaymentHistory,
+    getRecentRecipients
 };
 

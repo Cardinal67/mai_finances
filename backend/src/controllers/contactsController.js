@@ -1,6 +1,18 @@
 const db = require('../config/database');
 
 /**
+ * Normalize URL by adding http:// if missing
+ */
+function normalizeUrl(url) {
+    if (!url || url.trim() === '') return null;
+    const trimmedUrl = url.trim();
+    if (!/^https?:\/\//i.test(trimmedUrl)) {
+        return `http://${trimmedUrl}`;
+    }
+    return trimmedUrl;
+}
+
+/**
  * Get all contacts for the authenticated user
  */
 async function getAllContacts(req, res) {
@@ -107,7 +119,19 @@ async function createContact(req, res) {
         notes
     } = req.body;
 
+    // Validate required fields
+    if (!current_name || !contact_type) {
+        return res.status(400).json({
+            success: false,
+            message: 'Contact name and type are required'
+        });
+    }
+
     try {
+        // Normalize URLs
+        const normalizedWebsite = normalizeUrl(website);
+        const normalizedPortalUrl = normalizeUrl(payment_portal_url);
+
         const result = await db.query(
             `INSERT INTO CONTACTS (
                 user_id, current_name, contact_type, email, phone, address,
@@ -118,7 +142,7 @@ async function createContact(req, res) {
             RETURNING *`,
             [
                 userId, current_name, contact_type, email, phone, address,
-                account_number, website, payment_portal_url, notes
+                account_number, normalizedWebsite, normalizedPortalUrl, notes
             ]
         );
 
@@ -162,6 +186,14 @@ async function updateContact(req, res) {
                 success: false,
                 message: 'Contact not found'
             });
+        }
+
+        // Normalize URLs if they are being updated
+        if (updates.website) {
+            updates.website = normalizeUrl(updates.website);
+        }
+        if (updates.payment_portal_url) {
+            updates.payment_portal_url = normalizeUrl(updates.payment_portal_url);
         }
 
         const allowedFields = [

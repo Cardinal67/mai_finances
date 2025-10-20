@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 
 const navigation = [
   { name: 'Dashboard', path: '/dashboard', icon: '📊' },
-  { name: 'Expenses', path: '/payments', icon: '💰' },
+  { name: 'Expenses', path: '/expenses', icon: '💰' },
   { name: 'Income', path: '/income', icon: '💵' },
   { name: 'Accounts', path: '/accounts', icon: '🏦' },
   { name: 'Credit Cards', path: '/credit-cards', icon: '💳' },
@@ -52,7 +52,7 @@ const Layout = ({ children }) => {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              {/* Spending Plans Button */}
+              {/* Goals Button */}
               <Link
                 to="/spending-plans"
                 className={`hidden sm:inline-flex items-center px-2 py-2 text-sm font-medium rounded-md ${
@@ -60,10 +60,10 @@ const Layout = ({ children }) => {
                     ? 'bg-primary-50 text-primary-700'
                     : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                 }`}
-                title="Spending Plans"
+                title="Goals"
               >
                 <span className="text-lg">🎯</span>
-                <span className="ml-1 hidden lg:inline">Plans</span>
+                <span className="ml-1 hidden lg:inline">Goals</span>
               </Link>
               
               {/* User Menu */}
@@ -125,7 +125,7 @@ const Layout = ({ children }) => {
               }`}
             >
               <span className="mr-2">🎯</span>
-              Spending Plans
+              Goals
             </Link>
             <Link
               to="/settings"
