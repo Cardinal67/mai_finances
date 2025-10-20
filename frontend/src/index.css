@@ -2,6 +2,42 @@
 @tailwind components;
 @tailwind utilities;
 
+/* CSS Variables for Dynamic Theming */
+:root {
+  --color-primary: #3b82f6;
+  --color-secondary: #8b5cf6;
+  --color-background: #f9fafb;
+  --color-card: #ffffff;
+  --color-textPrimary: #111827;
+  --color-textSecondary: #6b7280;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-border: #e5e7eb;
+}
+
+/* Apply theme colors to Tailwind classes */
+.bg-primary-50 { background-color: color-mix(in srgb, var(--color-primary) 10%, white); }
+.bg-primary-100 { background-color: color-mix(in srgb, var(--color-primary) 20%, white); }
+.bg-primary-200 { background-color: color-mix(in srgb, var(--color-primary) 30%, white); }
+.bg-primary-500 { background-color: var(--color-primary); }
+.bg-primary-600 { background-color: var(--color-primary); }
+.bg-primary-700 { background-color: color-mix(in srgb, var(--color-primary), black 20%); }
+.text-primary-600 { color: var(--color-primary); }
+.text-primary-700 { color: color-mix(in srgb, var(--color-primary), black 20%); }
+.border-primary-200 { border-color: color-mix(in srgb, var(--color-primary) 30%, white); }
+.border-primary-500 { border-color: var(--color-primary); }
+
+/* Button hover states */
+.hover\\:bg-primary-700:hover { background-color: color-mix(in srgb, var(--color-primary), black 20%); }
+.hover\\:text-primary-800:hover { color: color-mix(in srgb, var(--color-primary), black 30%); }
+.hover\\:text-primary-900:hover { color: color-mix(in srgb, var(--color-primary), black 40%); }
+.hover\\:border-primary-500:hover { border-color: var(--color-primary); }
+
+/* Focus states */
+.focus\\:border-primary-500:focus { border-color: var(--color-primary); }
+.focus\\:ring-primary-500:focus { --tw-ring-color: var(--color-primary); }
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',

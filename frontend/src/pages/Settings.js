@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { preferencesAPI } from '../utils/api';
+import ThemeBuilder from '../components/ThemeBuilder';
 
 const Settings = () => {
   const [preferences, setPreferences] = useState(null);
@@ -72,6 +73,11 @@ const Settings = () => {
           {message}
         </div>
       )}
+
+      {/* Theme Builder Section */}
+      <div className="bg-white shadow rounded-lg p-6">
+        <ThemeBuilder />
+      </div>
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* Regional Settings */}
