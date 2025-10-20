@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { paymentsAPI, contactsAPI } from '../utils/api';
 import { formatCurrency, formatDate, getStatusColor, getPaymentTypeColor } from '../utils/formatters';
+import ContactQuickAdd from '../components/ContactQuickAdd';
 
 const Payments = () => {
   const [payments, setPayments] = useState([]);
@@ -8,6 +9,7 @@ const Payments = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [formData, setFormData] = useState({
     contact_id: '',
     description: '',
@@ -155,13 +157,33 @@ const Payments = () => {
                 <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                   <h3 className="text-lg font-medium text-gray-900 mb-4">{selectedPayment ? 'Edit' : 'New'} Payment</h3>
                   <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Contact</label>
-                      <select required value={formData.contact_id} onChange={(e) => setFormData({...formData, contact_id: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                        <option value="">Select contact...</option>
-                        {contacts.map(c => <option key={c.id} value={c.id}>{c.current_name}</option>)}
-                      </select>
-                    </div>
+                    {showQuickAdd ? (
+                      <ContactQuickAdd 
+                        onContactAdded={(newContact) => {
+                          setContacts([...contacts, newContact]);
+                          setFormData({...formData, contact_id: newContact.id});
+                          setShowQuickAdd(false);
+                        }}
+                        onCancel={() => setShowQuickAdd(false)}
+                      />
+                    ) : (
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <label className="block text-sm font-medium text-gray-700">Contact</label>
+                          <button
+                            type="button"
+                            onClick={() => setShowQuickAdd(true)}
+                            className="text-xs text-primary-600 hover:text-primary-800 font-medium"
+                          >
+                            + New Contact
+                          </button>
+                        </div>
+                        <select required value={formData.contact_id} onChange={(e) => setFormData({...formData, contact_id: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                          <option value="">Select contact...</option>
+                          {contacts.map(c => <option key={c.id} value={c.id}>{c.current_name}</option>)}
+                        </select>
+                      </div>
+                    )}
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Description</label>
                       <input required type="text" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" />

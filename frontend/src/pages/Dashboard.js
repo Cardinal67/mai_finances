@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { dashboardAPI } from '../utils/api';
-import { formatCurrency, formatDate, formatRelativeTime, getStatusColor } from '../utils/formatters';
+import { formatCurrency, formatRelativeTime, getStatusColor } from '../utils/formatters';
+import BalanceDisplay from '../components/BalanceDisplay';
 
 const Dashboard = () => {
   const [data, setData] = useState(null);
@@ -100,6 +101,28 @@ const Dashboard = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Safe to Spend - PRIORITY #1 */}
+        <div className="bg-white overflow-hidden shadow-lg rounded-lg border-2 border-primary-200">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <span className="text-3xl">✅</span>
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">
+                    Safe to Spend
+                  </dt>
+                  <dd className={`text-xl font-bold ${summary.safe_to_spend >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatCurrency(summary.safe_to_spend)}
+                  </dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Available Balance */}
         <div className="bg-white overflow-hidden shadow rounded-lg">
           <div className="p-5">
             <div className="flex items-center">
@@ -111,8 +134,8 @@ const Dashboard = () => {
                   <dt className="text-sm font-medium text-gray-500 truncate">
                     Available Balance
                   </dt>
-                  <dd className="text-lg font-semibold text-gray-900">
-                    {formatCurrency(summary.total_available)}
+                  <dd className="font-semibold text-gray-900">
+                    <BalanceDisplay amount={summary.total_available} size="lg" />
                   </dd>
                 </dl>
               </div>
@@ -120,6 +143,7 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* Upcoming Bills */}
         <div className="bg-white overflow-hidden shadow rounded-lg">
           <div className="p-5">
             <div className="flex items-center">
@@ -140,6 +164,7 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* Expected Income */}
         <div className="bg-white overflow-hidden shadow rounded-lg">
           <div className="p-5">
             <div className="flex items-center">
@@ -153,26 +178,6 @@ const Dashboard = () => {
                   </dt>
                   <dd className="text-lg font-semibold text-green-600">
                     {formatCurrency(summary.total_expected_income)}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <span className="text-3xl">✅</span>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Safe to Spend
-                  </dt>
-                  <dd className={`text-lg font-semibold ${summary.safe_to_spend >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatCurrency(summary.safe_to_spend)}
                   </dd>
                 </dl>
               </div>
@@ -286,11 +291,11 @@ const Dashboard = () => {
               <div key={account.id} className="p-4 bg-gray-50 rounded-lg">
                 <p className="font-medium text-gray-900">{account.account_name}</p>
                 <p className="text-sm text-gray-500 capitalize">{account.account_type}</p>
-                <p className="mt-2 text-lg font-semibold text-gray-900">
-                  {formatCurrency(account.current_balance)}
-                </p>
+                <div className="mt-2 text-gray-900 font-semibold">
+                  <BalanceDisplay amount={account.current_balance} size="lg" />
+                </div>
                 <p className="text-xs text-gray-500">
-                  Available: {formatCurrency(account.available_balance)}
+                  Available: <BalanceDisplay amount={account.available_balance} size="sm" className="text-gray-500" />
                 </p>
               </div>
             ))}

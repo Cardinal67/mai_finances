@@ -37,7 +37,7 @@ app.use((req, res, next) => {
 app.get('/health', (req, res) => {
     res.json({ 
         success: true, 
-        message: 'Personal Finance Manager API is running',
+        message: 'Mai Finances API is running',
         version: '1.0.0-dev',
         timestamp: new Date().toISOString()
     });
@@ -89,7 +89,7 @@ app.use((err, req, res, next) => {
 
 // Start server
 app.listen(PORT, () => {
-    console.log('\n🚀 Personal Finance Manager API');
+    console.log('\n🚀 Mai Finances API');
     console.log(`📡 Server running on port ${PORT}`);
     console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🔗 Health check: http://localhost:${PORT}/health`);

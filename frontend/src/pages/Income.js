@@ -42,10 +42,16 @@ const Income = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Prepare form data, ensuring to_account_id is null for cash
+      const submitData = {
+        ...formData,
+        to_account_id: formData.source_type === 'cash' ? null : (formData.to_account_id || null)
+      };
+      
       if (selectedIncome) {
-        await incomeAPI.update(selectedIncome.id, formData);
+        await incomeAPI.update(selectedIncome.id, submitData);
       } else {
-        await incomeAPI.create(formData);
+        await incomeAPI.create(submitData);
       }
       setShowModal(false);
       setSelectedIncome(null);
@@ -147,6 +153,18 @@ const Income = () => {
               {income.is_variable && (
                 <div className="text-xs text-yellow-600">⚠️ Variable amount</div>
               )}
+              {income.source_type === 'cash' && (
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-500">Type:</span>
+                  <span className="text-sm font-medium text-green-600">💵 Cash</span>
+                </div>
+              )}
+              {income.to_account_name && income.source_type !== 'cash' && (
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-500">To Account:</span>
+                  <span className="text-sm text-gray-900">{income.to_account_name}</span>
+                </div>
+              )}
             </div>
             <div className="mt-4 flex space-x-2">
               <button onClick={() => handleEdit(income)} className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">Edit</button>
@@ -172,13 +190,22 @@ const Income = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Source Type</label>
-                      <select value={formData.source_type} onChange={(e) => setFormData({...formData, source_type: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                      <select value={formData.source_type} onChange={(e) => {
+                        const newType = e.target.value;
+                        setFormData({
+                          ...formData, 
+                          source_type: newType,
+                          // Clear account if switching to cash
+                          to_account_id: newType === 'cash' ? '' : formData.to_account_id
+                        });
+                      }} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
                         <option value="salary">Salary</option>
                         <option value="wages">Wages</option>
                         <option value="freelance">Freelance</option>
                         <option value="business">Business</option>
                         <option value="rental">Rental</option>
                         <option value="investment">Investment</option>
+                        <option value="cash">Cash</option>
                         <option value="gift">Gift</option>
                         <option value="other">Other</option>
                       </select>
@@ -193,13 +220,31 @@ const Income = () => {
                         <span className="ml-2 text-sm text-gray-700">Variable amount</span>
                       </label>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Deposit To Account</label>
-                      <select value={formData.to_account_id} onChange={(e) => setFormData({...formData, to_account_id: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                        <option value="">Select account...</option>
-                        {accounts.map(a => <option key={a.id} value={a.id}>{a.account_name}</option>)}
-                      </select>
-                    </div>
+                    {formData.source_type !== 'cash' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Deposit To Account</label>
+                        <select value={formData.to_account_id} onChange={(e) => setFormData({...formData, to_account_id: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                          <option value="">Select account (optional)...</option>
+                          {accounts.map(a => <option key={a.id} value={a.id}>{a.account_name}</option>)}
+                        </select>
+                      </div>
+                    )}
+                    {formData.source_type === 'cash' && (
+                      <div className="rounded-md bg-blue-50 p-4">
+                        <div className="flex">
+                          <div className="flex-shrink-0">
+                            <svg className="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div className="ml-3 flex-1">
+                            <p className="text-sm text-blue-700">
+                              💵 <strong>Cash Income:</strong> No bank account needed. This income will be tracked as cash on hand.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     <div>
                       <label className="flex items-center">
                         <input type="checkbox" checked={formData.is_recurring} onChange={(e) => setFormData({...formData, is_recurring: e.target.checked})} className="rounded border-gray-300 text-primary-600 focus:ring-primary-500" />

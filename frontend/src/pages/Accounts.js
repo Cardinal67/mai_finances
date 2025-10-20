@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { accountsAPI } from '../utils/api';
 import { formatCurrency } from '../utils/formatters';
+import BalanceDisplay from '../components/BalanceDisplay';
 
 const Accounts = () => {
   const [accounts, setAccounts] = useState([]);
@@ -97,7 +98,7 @@ const Accounts = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">🏦 Accounts</h1>
-          <p className="mt-1 text-sm text-gray-500">Total Balance: <span className="font-semibold text-gray-900">{formatCurrency(getTotalBalance())}</span></p>
+          <p className="mt-1 text-sm text-gray-500">Total Balance: <span className="font-semibold text-gray-900"><BalanceDisplay amount={getTotalBalance()} size="sm" /></span></p>
         </div>
         <button
           onClick={() => setShowModal(true)}
@@ -126,11 +127,15 @@ const Accounts = () => {
             <div className="space-y-2">
               <div>
                 <p className="text-sm text-gray-500">Current Balance</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(account.current_balance)}</p>
+                <div className="text-gray-900 font-bold">
+                  <BalanceDisplay amount={account.current_balance} size="xl" />
+                </div>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Available Balance</p>
-                <p className="text-lg font-medium text-green-600">{formatCurrency(account.available_balance)}</p>
+                <div className="text-green-600 font-medium">
+                  <BalanceDisplay amount={account.available_balance} size="lg" />
+                </div>
               </div>
               {account.account_number_last4 && (
                 <p className="text-xs text-gray-400">****{account.account_number_last4}</p>
