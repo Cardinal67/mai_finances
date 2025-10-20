@@ -7,6 +7,7 @@ const navigation = [
   { name: 'Payments', path: '/payments', icon: '💰' },
   { name: 'Income', path: '/income', icon: '💵' },
   { name: 'Accounts', path: '/accounts', icon: '🏦' },
+  { name: 'Credit Cards', path: '/credit-cards', icon: '💳' },
   { name: 'Contacts', path: '/contacts', icon: '👥' },
   { name: 'Calendar', path: '/calendar', icon: '📅' },
 ];

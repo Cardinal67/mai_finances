@@ -164,5 +164,14 @@ export const searchAPI = {
   search: (params) => api.get('/search', { params }),
 };
 
+export const creditCardsAPI = {
+  getAll: (params) => api.get('/credit-cards', { params }),
+  getById: (id) => api.get(`/credit-cards/${id}`),
+  create: (data) => api.post('/credit-cards', data),
+  update: (id, data) => api.put(`/credit-cards/${id}`, data),
+  delete: (id) => api.delete(`/credit-cards/${id}`),
+  getUtilization: () => api.get('/credit-cards/utilization'),
+};
+
 export default api;
 

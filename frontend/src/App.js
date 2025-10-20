@@ -17,6 +17,7 @@ import Contacts from './pages/Contacts';
 import Calendar from './pages/Calendar';
 import SpendingPlans from './pages/SpendingPlans';
 import Settings from './pages/Settings';
+import CreditCards from './pages/CreditCards';
 
 function App() {
   return (
@@ -105,6 +106,16 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <Settings />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/credit-cards"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <CreditCards />
                 </Layout>
               </ProtectedRoute>
             }
