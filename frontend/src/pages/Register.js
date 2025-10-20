@@ -46,27 +46,61 @@ const Register = () => {
       });
       navigate('/dashboard');
     } catch (err) {
-      console.error('Registration error:', err);
-      const errorData = err.response?.data;
+      console.error('[Register] Registration error:', err);
       let errorMessage = 'Registration failed. Please try again.';
+      let errorCode = 'ERR_UNKNOWN';
       
-      if (errorData?.error) {
-        errorMessage = `${errorData.error.message} (Code: ${errorData.error.code})`;
+      // Check for network errors first
+      if (err.networkError) {
+        errorCode = err.networkError.code;
+        errorMessage = `${err.networkError.message} (${errorCode})`;
+        
+        if (err.networkError.details) {
+          errorMessage += `\n\nDetails: ${err.networkError.details}`;
+        }
+        
+        if (err.networkError.suggestions) {
+          errorMessage += '\n\nSuggestions:\n' + err.networkError.suggestions.map((s, i) => `${i + 1}. ${s}`).join('\n');
+        }
+        
+        console.error('[Register] Network error detected:', err.networkError);
+      } 
+      // Check for server error response
+      else if (err.response?.data?.error) {
+        const errorData = err.response.data.error;
+        errorCode = errorData.code;
+        errorMessage = `${errorData.message} (${errorCode})`;
         
         // Add specific field information if available
-        if (errorData.error.field) {
-          errorMessage += ` - ${errorData.error.field}: ${errorData.error.value}`;
+        if (errorData.field) {
+          errorMessage += `\n\nField: ${errorData.field}`;
+          if (errorData.value) {
+            errorMessage += ` - Value: ${errorData.value}`;
+          }
         }
         
         // Add debug information in development
-        if (errorData.error.debug) {
-          console.error('Debug info:', errorData.error.debug);
+        if (errorData.debug) {
+          console.error('[Register] Debug info:', errorData.debug);
+          errorMessage += '\n\nSee browser console for technical details.';
         }
-      } else if (errorData?.message) {
-        errorMessage = errorData.message;
-      } else if (err.message) {
-        errorMessage = `Error: ${err.message}`;
       }
+      // Check for legacy error format
+      else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      }
+      // Generic error
+      else if (err.message) {
+        if (err.message.includes('Network Error')) {
+          errorCode = 'ERR_NET_8001';
+          errorMessage = `Cannot connect to server (${errorCode})\n\nThe backend server may not be running.\n\nPlease ensure the backend is started on port 3001.`;
+        } else {
+          errorMessage = `Error: ${err.message}`;
+        }
+      }
+      
+      console.error(`[Register] Final error code: ${errorCode}`);
+      console.error(`[Register] Final error message: ${errorMessage}`);
       
       setError(errorMessage);
     } finally {

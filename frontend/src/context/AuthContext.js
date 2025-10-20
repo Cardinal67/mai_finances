@@ -29,23 +29,33 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (credentials) => {
-    const response = await authAPI.login(credentials);
-    const { token, user } = response.data.data;
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(user));
-    setToken(token);
-    setUser(user);
-    return response.data;
+    try {
+      const response = await authAPI.login(credentials);
+      const { token, user } = response.data.data;
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      setToken(token);
+      setUser(user);
+      return response.data;
+    } catch (error) {
+      console.error('[AuthContext] Login failed:', error);
+      throw error;
+    }
   };
 
   const register = async (data) => {
-    const response = await authAPI.register(data);
-    const { token, user } = response.data.data;
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(user));
-    setToken(token);
-    setUser(user);
-    return response.data;
+    try {
+      const response = await authAPI.register(data);
+      const { token, user } = response.data.data;
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      setToken(token);
+      setUser(user);
+      return response.data;
+    } catch (error) {
+      console.error('[AuthContext] Registration failed:', error);
+      throw error;
+    }
   };
 
   const logout = () => {

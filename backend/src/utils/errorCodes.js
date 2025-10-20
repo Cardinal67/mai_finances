@@ -44,9 +44,17 @@ const ErrorCodes = {
   VALIDATION_MISSING_FIELD: { code: 'ERR_VAL_7002', message: 'Required field missing' },
   VALIDATION_INVALID_FORMAT: { code: 'ERR_VAL_7003', message: 'Invalid data format' },
   
+  // Network/Connection Errors (8000-8099)
+  NETWORK_ERROR: { code: 'ERR_NET_8001', message: 'Network connection failed' },
+  NETWORK_TIMEOUT: { code: 'ERR_NET_8002', message: 'Request timeout' },
+  NETWORK_REFUSED: { code: 'ERR_NET_8003', message: 'Connection refused' },
+  NETWORK_UNREACHABLE: { code: 'ERR_NET_8004', message: 'Network unreachable' },
+  CORS_ERROR: { code: 'ERR_NET_8005', message: 'CORS policy error' },
+  
   // Server Errors (9000-9099)
   SERVER_ERROR: { code: 'ERR_SRV_9001', message: 'Internal server error' },
   SERVER_UNAVAILABLE: { code: 'ERR_SRV_9002', message: 'Service temporarily unavailable' },
+  SERVER_NOT_RESPONDING: { code: 'ERR_SRV_9003', message: 'Server not responding' },
 };
 
 /**

@@ -27,11 +27,50 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+    console.error('[API] Error occurred:', error);
+    
+    // Handle different error types
+    if (error.response) {
+      // Server responded with error status
+      console.error('[API] Server error:', error.response.status, error.response.data);
+      
+      if (error.response.status === 401) {
+        console.error('[API] Unauthorized - clearing auth and redirecting to login');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
+    } else if (error.request) {
+      // Request made but no response received
+      console.error('[API] No response from server:', error.request);
+      console.error('[API] This usually means:');
+      console.error('[API] 1. Backend server is not running');
+      console.error('[API] 2. Backend is on wrong port');
+      console.error('[API] 3. CORS issue');
+      console.error('[API] 4. Network connectivity problem');
+      
+      // Enhance error with network error code
+      error.networkError = {
+        code: 'ERR_NET_8001',
+        message: 'Cannot connect to server',
+        details: 'Backend may not be running on http://localhost:3001',
+        suggestions: [
+          'Check if backend server is running',
+          'Verify backend is on port 3001',
+          'Check browser console for CORS errors',
+          'Ensure DATABASE_URL is configured'
+        ]
+      };
+    } else {
+      // Error setting up request
+      console.error('[API] Request setup error:', error.message);
+      error.networkError = {
+        code: 'ERR_NET_8001',
+        message: 'Request configuration error',
+        details: error.message
+      };
     }
+    
     return Promise.reject(error);
   }
 );
