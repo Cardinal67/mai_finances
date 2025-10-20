@@ -53,7 +53,7 @@ async function updatePreferences(req, res) {
         const allowedFields = [
             'timezone', 'date_range_preference', 'safety_buffer_type', 'safety_buffer_amount',
             'default_currency', 'dashboard_widgets', 'table_columns', 'display_density',
-            'theme', 'notification_preferences'
+            'theme', 'notification_preferences', 'custom_theme', 'balance_masked'
         ];
 
         const updateFields = [];

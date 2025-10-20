@@ -7,6 +7,7 @@ const Settings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [themeBuilderOpen, setThemeBuilderOpen] = useState(false);
 
   useEffect(() => {
     loadPreferences();
@@ -75,8 +76,19 @@ const Settings = () => {
       )}
 
       {/* Theme Builder Section */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <ThemeBuilder />
+      <div className="bg-white shadow rounded-lg overflow-hidden">
+        <button
+          onClick={() => setThemeBuilderOpen(!themeBuilderOpen)}
+          className="w-full flex justify-between items-center p-6 hover:bg-gray-50 transition-colors"
+        >
+          <h2 className="text-lg font-medium text-gray-900">🎨 Custom Theme Builder</h2>
+          <span className="text-2xl text-gray-400">{themeBuilderOpen ? '▼' : '▶'}</span>
+        </button>
+        {themeBuilderOpen && (
+          <div className="p-6 pt-0 border-t border-gray-200">
+            <ThemeBuilder />
+          </div>
+        )}
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">

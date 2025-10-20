@@ -33,35 +33,37 @@ const Layout = ({ children }) => {
                   <div className="flex-shrink-0 flex items-center">
                     <h1 className="text-2xl font-bold text-primary-600">💰 Mai Finances</h1>
                   </div>
-              <div className="hidden sm:ml-8 sm:flex sm:space-x-4">
+              <div className="hidden sm:ml-6 sm:flex sm:space-x-1">
                 {navigation.map((item) => (
                   <Link
                     key={item.name}
                     to={item.path}
-                    className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                    className={`inline-flex items-center px-2 py-2 text-sm font-medium rounded-md ${
                       location.pathname === item.path
                         ? 'bg-primary-50 text-primary-700'
                         : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                     }`}
+                    title={item.name}
                   >
-                    <span className="mr-2">{item.icon}</span>
-                    {item.name}
+                    <span className="text-lg">{item.icon}</span>
+                    <span className="ml-1 hidden lg:inline">{item.name}</span>
                   </Link>
                 ))}
               </div>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
               {/* Spending Plans Button */}
               <Link
                 to="/spending-plans"
-                className={`hidden sm:inline-flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                className={`hidden sm:inline-flex items-center px-2 py-2 text-sm font-medium rounded-md ${
                   location.pathname === '/spending-plans'
                     ? 'bg-primary-50 text-primary-700'
                     : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                 }`}
+                title="Spending Plans"
               >
-                <span className="mr-2">🎯</span>
-                Spending Plans
+                <span className="text-lg">🎯</span>
+                <span className="ml-1 hidden lg:inline">Plans</span>
               </Link>
               
               {/* User Menu */}
