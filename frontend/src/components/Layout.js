@@ -1,4 +1,4 @@
-import { Fragment } from 'react';
+import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -9,14 +9,13 @@ const navigation = [
   { name: 'Accounts', path: '/accounts', icon: '🏦' },
   { name: 'Contacts', path: '/contacts', icon: '👥' },
   { name: 'Calendar', path: '/calendar', icon: '📅' },
-  { name: 'Spending Plans', path: '/spending-plans', icon: '🎯' },
-  { name: 'Settings', path: '/settings', icon: '⚙️' },
 ];
 
 const Layout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -50,17 +49,48 @@ const Layout = ({ children }) => {
                 ))}
               </div>
             </div>
-            <div className="flex items-center">
-              <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-700">
-                  👤 {user?.username}
-                </span>
+            <div className="flex items-center space-x-4">
+              {/* Spending Plans Button */}
+              <Link
+                to="/spending-plans"
+                className={`hidden sm:inline-flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                  location.pathname === '/spending-plans'
+                    ? 'bg-primary-50 text-primary-700'
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                }`}
+              >
+                <span className="mr-2">🎯</span>
+                Spending Plans
+              </Link>
+              
+              {/* User Menu */}
+              <div className="relative">
                 <button
-                  onClick={handleLogout}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
-                  Logout
+                  <span>👤 {user?.username}</span>
+                  <span className="text-xs">{userMenuOpen ? '▲' : '▼'}</span>
                 </button>
+                
+                {/* Dropdown Menu */}
+                {userMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
+                    <Link
+                      to="/settings"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      ⚙️ Settings
+                    </Link>
+                    <button
+                      onClick={() => { setUserMenuOpen(false); handleLogout(); }}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      🚪 Logout
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -83,6 +113,35 @@ const Layout = ({ children }) => {
                 {item.name}
               </Link>
             ))}
+            <Link
+              to="/spending-plans"
+              className={`block px-3 py-2 rounded-md text-base font-medium ${
+                location.pathname === '/spending-plans'
+                  ? 'bg-primary-50 text-primary-700'
+                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+            >
+              <span className="mr-2">🎯</span>
+              Spending Plans
+            </Link>
+            <Link
+              to="/settings"
+              className={`block px-3 py-2 rounded-md text-base font-medium ${
+                location.pathname === '/settings'
+                  ? 'bg-primary-50 text-primary-700'
+                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+            >
+              <span className="mr-2">⚙️</span>
+              Settings
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+            >
+              <span className="mr-2">🚪</span>
+              Logout
+            </button>
           </div>
         </div>
       </nav>
