@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const db = require('../config/database');
 const { generateToken } = require('../middleware/auth');
+const { ErrorCodes, createErrorResponse } = require('../utils/errorCodes');
 
 const SALT_ROUNDS = 10;
 
@@ -11,43 +12,89 @@ async function register(req, res) {
     const { username, email, password } = req.body;
 
     try {
+        console.log(`[AUTH] Registration attempt for username: ${username}, email: ${email}`);
+
+        // Validate input
+        if (!username || !email || !password) {
+            console.error('[AUTH] Missing required fields');
+            return res.status(400).json(
+                createErrorResponse(ErrorCodes.VALIDATION_MISSING_FIELD, {
+                    fields: {
+                        username: !username ? 'required' : 'ok',
+                        email: !email ? 'required' : 'ok',
+                        password: !password ? 'required' : 'ok'
+                    }
+                })
+            );
+        }
+
         // Check if username already exists
         const userCheck = await db.query(
-            'SELECT id FROM USERS WHERE username = $1 OR email = $2',
+            'SELECT id, username, email FROM users WHERE username = $1 OR email = $2',
             [username, email]
         );
 
         if (userCheck.rows.length > 0) {
-            return res.status(409).json({
-                success: false,
-                message: 'Username or email already exists'
-            });
+            const existingUser = userCheck.rows[0];
+            const isDuplicateUsername = existingUser.username === username;
+            const isDuplicateEmail = existingUser.email === email;
+
+            console.error(`[AUTH] User already exists - Username: ${isDuplicateUsername}, Email: ${isDuplicateEmail}`);
+            
+            return res.status(409).json(
+                createErrorResponse(
+                    isDuplicateUsername ? ErrorCodes.AUTH_USERNAME_EXISTS : ErrorCodes.AUTH_EMAIL_EXISTS,
+                    {
+                        field: isDuplicateUsername ? 'username' : 'email',
+                        value: isDuplicateUsername ? username : email
+                    }
+                )
+            );
         }
 
+        console.log('[AUTH] User validation passed, hashing password...');
+
         // Hash password
-        const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
+        let password_hash;
+        try {
+            password_hash = await bcrypt.hash(password, SALT_ROUNDS);
+            console.log('[AUTH] Password hashed successfully');
+        } catch (hashError) {
+            console.error('[AUTH] Password hashing failed:', hashError);
+            return res.status(500).json(
+                createErrorResponse(ErrorCodes.AUTH_PASSWORD_HASH_FAILED, {}, hashError)
+            );
+        }
+
+        console.log('[AUTH] Creating user in database...');
 
         // Create user
         const result = await db.query(
-            `INSERT INTO USERS (username, email, password_hash, created_at, settings)
+            `INSERT INTO users (username, email, password_hash, created_at, settings)
              VALUES ($1, $2, $3, CURRENT_TIMESTAMP, '{}')
              RETURNING id, username, email, created_at`,
             [username, email, password_hash]
         );
 
         const newUser = result.rows[0];
+        console.log(`[AUTH] User created successfully with ID: ${newUser.id}`);
 
         // Create default user preferences
+        console.log('[AUTH] Creating default user preferences...');
         await db.query(
-            `INSERT INTO USER_PREFERENCES (user_id, timezone, date_range_preference, 
+            `INSERT INTO user_preferences (user_id, timezone, date_range_preference, 
              safety_buffer_type, safety_buffer_amount, default_currency, 
              dashboard_widgets, table_columns, display_density, theme, notification_preferences)
              VALUES ($1, 'UTC', 30, 'fixed', 0.00, 'USD', '{}', '{}', 'comfortable', 'light', '{}')`,
             [newUser.id]
         );
+        console.log('[AUTH] User preferences created successfully');
 
         // Generate JWT token
+        console.log('[AUTH] Generating JWT token...');
         const token = generateToken(newUser);
+
+        console.log(`[AUTH] ✅ Registration successful for user: ${username}`);
 
         res.status(201).json({
             success: true,
@@ -63,11 +110,19 @@ async function register(req, res) {
             }
         });
     } catch (error) {
-        console.error('Registration error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error during registration'
+        console.error('[AUTH] ❌ Registration error:', error);
+        console.error('[AUTH] Error details:', {
+            message: error.message,
+            code: error.code,
+            detail: error.detail,
+            stack: error.stack
         });
+        
+        res.status(500).json(
+            createErrorResponse(ErrorCodes.AUTH_REGISTRATION_FAILED, {
+                timestamp: new Date().toISOString()
+            }, error)
+        );
     }
 }
 

@@ -46,7 +46,29 @@ const Register = () => {
       });
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      console.error('Registration error:', err);
+      const errorData = err.response?.data;
+      let errorMessage = 'Registration failed. Please try again.';
+      
+      if (errorData?.error) {
+        errorMessage = `${errorData.error.message} (Code: ${errorData.error.code})`;
+        
+        // Add specific field information if available
+        if (errorData.error.field) {
+          errorMessage += ` - ${errorData.error.field}: ${errorData.error.value}`;
+        }
+        
+        // Add debug information in development
+        if (errorData.error.debug) {
+          console.error('Debug info:', errorData.error.debug);
+        }
+      } else if (errorData?.message) {
+        errorMessage = errorData.message;
+      } else if (err.message) {
+        errorMessage = `Error: ${err.message}`;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
