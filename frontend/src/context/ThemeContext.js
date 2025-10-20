@@ -93,6 +93,7 @@ const presetThemes = {
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(defaultTheme);
+  const [balanceMasked, setBalanceMasked] = useState(true); // Default to hidden
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -101,7 +102,13 @@ export const ThemeProvider = ({ children }) => {
 
   const loadTheme = async () => {
     try {
-      // Try to load from localStorage first for immediate application
+      // Load balance preference from localStorage first
+      const savedBalanceMasked = localStorage.getItem('balanceMasked');
+      if (savedBalanceMasked !== null) {
+        setBalanceMasked(savedBalanceMasked === 'true');
+      }
+
+      // Try to load theme from localStorage first for immediate application
       const savedTheme = localStorage.getItem('customTheme');
       if (savedTheme) {
         const parsedTheme = JSON.parse(savedTheme);
@@ -111,7 +118,16 @@ export const ThemeProvider = ({ children }) => {
 
       // Then load from backend for sync
       const response = await preferencesAPI.get();
-      const customTheme = response.data.data?.custom_theme;
+      const preferences = response.data.data;
+      
+      // Load balance masked preference
+      if (typeof preferences.balance_masked === 'boolean') {
+        setBalanceMasked(preferences.balance_masked);
+        localStorage.setItem('balanceMasked', preferences.balance_masked.toString());
+      }
+      
+      // Load custom theme
+      const customTheme = preferences.custom_theme;
       if (customTheme) {
         // Parse if it's a string, otherwise use as-is
         const themeData = typeof customTheme === 'string' ? JSON.parse(customTheme) : customTheme;
@@ -183,6 +199,21 @@ export const ThemeProvider = ({ children }) => {
     }
   };
 
+  const toggleBalanceMask = async () => {
+    const newValue = !balanceMasked;
+    setBalanceMasked(newValue);
+    localStorage.setItem('balanceMasked', newValue.toString());
+    
+    try {
+      await preferencesAPI.update({ balance_masked: newValue });
+    } catch (error) {
+      console.error('Failed to save balance preference:', error);
+      // Revert on error
+      setBalanceMasked(!newValue);
+      localStorage.setItem('balanceMasked', (!newValue).toString());
+    }
+  };
+
   const value = {
     theme,
     updateTheme,
@@ -192,6 +223,8 @@ export const ThemeProvider = ({ children }) => {
     importTheme,
     presets: Object.keys(presetThemes),
     loading,
+    balanceMasked,
+    toggleBalanceMask,
   };
 
   return (

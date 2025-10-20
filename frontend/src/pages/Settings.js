@@ -175,31 +175,20 @@ const Settings = () => {
         <div className="bg-white shadow rounded-lg overflow-hidden">
           <div className="p-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Display Preferences</h2>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Theme</label>
-                <select
-                  value={preferences.theme}
-                  onChange={(e) => setPreferences({...preferences, theme: e.target.value})}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                >
-                  <option value="light">Light</option>
-                  <option value="dark">Dark</option>
-                  <option value="auto">Auto</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Display Density</label>
-                <select
-                  value={preferences.display_density}
-                  onChange={(e) => setPreferences({...preferences, display_density: e.target.value})}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                >
-                  <option value="compact">Compact</option>
-                  <option value="comfortable">Comfortable</option>
-                  <option value="spacious">Spacious</option>
-                </select>
-              </div>
+            
+            {/* Display Density */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Display Density</label>
+              <select
+                value={preferences.display_density}
+                onChange={(e) => setPreferences({...preferences, display_density: e.target.value})}
+                className="block w-full max-w-xs rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+              >
+                <option value="compact">Compact</option>
+                <option value="comfortable">Comfortable</option>
+                <option value="spacious">Spacious</option>
+              </select>
+              <p className="mt-1 text-sm text-gray-500">Adjust spacing and size of interface elements</p>
             </div>
 
             {/* Custom Theme Builder - Collapsible */}
@@ -209,7 +198,13 @@ const Settings = () => {
                 onClick={() => setThemeBuilderOpen(!themeBuilderOpen)}
                 className="w-full flex justify-between items-center py-2 hover:bg-gray-50 rounded transition-colors"
               >
-                <h3 className="text-md font-medium text-gray-900">🎨 Custom Theme Builder</h3>
+                <div className="flex items-center space-x-2">
+                  <span className="text-2xl">🎨</span>
+                  <div className="text-left">
+                    <h3 className="text-md font-medium text-gray-900">Color Theme</h3>
+                    <p className="text-xs text-gray-500">Customize app colors and appearance</p>
+                  </div>
+                </div>
                 <span className="text-xl text-gray-400">{themeBuilderOpen ? '▼' : '▶'}</span>
               </button>
               {themeBuilderOpen && (
