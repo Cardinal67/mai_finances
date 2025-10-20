@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS payment_transactions (
 
 CREATE INDEX idx_payment_transactions_payment ON payment_transactions(payment_id);
 CREATE INDEX idx_payment_transactions_date ON payment_transactions(transaction_date);
-CREATE INDEX idx_payment_transactions_account FROM payment_transactions(from_account_id);
+CREATE INDEX idx_payment_transactions_account ON payment_transactions(from_account_id);
 
 COMMENT ON TABLE payment_transactions IS 'Individual payment transactions for tracking partial payments';
 
