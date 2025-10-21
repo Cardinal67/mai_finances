@@ -11,13 +11,18 @@ const BalanceDisplay = ({ amount, className = '', size = 'md' }) => {
     xl: 'text-2xl',
   };
 
+  const handleClick = () => {
+    console.log('[BalanceDisplay] Button clicked, current state:', balanceMasked);
+    toggleBalanceMask();
+  };
+
   return (
     <div className="inline-flex items-center space-x-2">
       <span className={`${sizeClasses[size]} ${className}`}>
         {balanceMasked ? '••••••' : formatCurrency(amount)}
       </span>
       <button
-        onClick={toggleBalanceMask}
+        onClick={handleClick}
         className="text-gray-400 hover:text-gray-600 focus:outline-none transition-colors"
         title={balanceMasked ? 'Show balance' : 'Hide balance'}
         aria-label={balanceMasked ? 'Show balance' : 'Hide balance'}

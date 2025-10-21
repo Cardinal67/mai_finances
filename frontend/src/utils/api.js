@@ -98,6 +98,7 @@ export const paymentsAPI = {
   getTransactions: (id) => api.get(`/payments/${id}/transactions`),
   reschedule: (id, data) => api.put(`/payments/${id}/reschedule`, data),
   getHistory: (id) => api.get(`/payments/${id}/history`),
+  getRecentRecipients: (params) => api.get('/payments/recent-recipients', { params }),
 };
 
 export const incomeAPI = {

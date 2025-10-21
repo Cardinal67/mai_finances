@@ -210,13 +210,16 @@ export const ThemeProvider = ({ children }) => {
 
   const toggleBalanceMask = async () => {
     const newValue = !balanceMasked;
+    console.log('[BalanceMask] Toggling from', balanceMasked, 'to', newValue);
     setBalanceMasked(newValue);
     localStorage.setItem('balanceMasked', newValue.toString());
     
     try {
+      console.log('[BalanceMask] Saving to backend:', newValue);
       await preferencesAPI.update({ balance_masked: newValue });
+      console.log('[BalanceMask] Successfully saved to backend');
     } catch (error) {
-      console.error('Failed to save balance preference:', error);
+      console.error('[BalanceMask] Failed to save balance preference:', error);
       // Revert on error
       setBalanceMasked(!newValue);
       localStorage.setItem('balanceMasked', (!newValue).toString());

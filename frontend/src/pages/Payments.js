@@ -6,11 +6,15 @@ import ContactQuickAdd from '../components/ContactQuickAdd';
 const Payments = () => {
   const [payments, setPayments] = useState([]);
   const [contacts, setContacts] = useState([]);
+  const [recentRecipients, setRecentRecipients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [useContact, setUseContact] = useState(false);
   const [formData, setFormData] = useState({
+    expense_name: '',
+    recipient: '',
     contact_id: '',
     description: '',
     original_amount: '',
@@ -26,12 +30,14 @@ const Payments = () => {
 
   const loadData = async () => {
     try {
-      const [paymentsRes, contactsRes] = await Promise.all([
+      const [paymentsRes, contactsRes, recipientsRes] = await Promise.all([
         paymentsAPI.getAll(),
         contactsAPI.getAll(),
+        paymentsAPI.getRecentRecipients(),
       ]);
       setPayments(paymentsRes.data.data);
       setContacts(contactsRes.data.data);
+      setRecentRecipients(recipientsRes.data.data || []);
     } catch (error) {
       console.error('Failed to load data:', error);
     } finally {
@@ -50,6 +56,8 @@ const Payments = () => {
       setShowModal(false);
       setSelectedPayment(null);
       setFormData({
+        expense_name: '',
+        recipient: '',
         contact_id: '',
         description: '',
         original_amount: '',
@@ -58,6 +66,7 @@ const Payments = () => {
         payment_method: '',
         notes: '',
       });
+      setUseContact(false);
       loadData();
     } catch (error) {
       console.error('Failed to save payment:', error);
@@ -67,9 +76,13 @@ const Payments = () => {
 
   const handleEdit = (payment) => {
     setSelectedPayment(payment);
+    const hasContact = !!payment.contact_id;
+    setUseContact(hasContact);
     setFormData({
-      contact_id: payment.contact_id,
-      description: payment.description,
+      expense_name: payment.expense_name || '',
+      recipient: payment.recipient || '',
+      contact_id: payment.contact_id || '',
+      description: payment.description || '',
       original_amount: payment.original_amount,
       due_date: payment.due_date.split('T')[0],
       payment_type: payment.payment_type,
@@ -111,8 +124,8 @@ const Payments = () => {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Expense</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Recipient</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Due Date</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
@@ -124,10 +137,10 @@ const Payments = () => {
             {payments.map((payment) => (
               <tr key={payment.id}>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{payment.description}</div>
-                  {payment.notes && <div className="text-sm text-gray-500">{payment.notes}</div>}
+                  <div className="text-sm font-medium text-gray-900">{payment.expense_name || payment.description || '-'}</div>
+                  {payment.description && payment.expense_name && <div className="text-sm text-gray-500">{payment.description}</div>}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{payment.contact_name}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{payment.recipient || payment.contact_name || '-'}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{formatCurrency(payment.current_balance)}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDate(payment.current_due_date)}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -159,36 +172,77 @@ const Payments = () => {
                 <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                   <h3 className="text-lg font-medium text-gray-900 mb-4">{selectedPayment ? 'Edit' : 'New'} Expense</h3>
                   <div className="space-y-4">
-                    {showQuickAdd ? (
-                      <ContactQuickAdd 
-                        onContactAdded={(newContact) => {
-                          setContacts([...contacts, newContact]);
-                          setFormData({...formData, contact_id: newContact.id});
-                          setShowQuickAdd(false);
-                        }}
-                        onCancel={() => setShowQuickAdd(false)}
-                      />
-                    ) : (
-                      <div>
-                        <div className="flex justify-between items-center mb-1">
-                          <label className="block text-sm font-medium text-gray-700">Contact</label>
-                          <button
-                            type="button"
-                            onClick={() => setShowQuickAdd(true)}
-                            className="text-xs text-primary-600 hover:text-primary-800 font-medium"
-                          >
-                            + New Contact
-                          </button>
-                        </div>
-                        <select required value={formData.contact_id} onChange={(e) => setFormData({...formData, contact_id: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                          <option value="">Select contact...</option>
-                          {contacts.map(c => <option key={c.id} value={c.id}>{c.current_name}</option>)}
-                        </select>
-                      </div>
-                    )}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Description</label>
-                      <input required type="text" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" />
+                      <label className="block text-sm font-medium text-gray-700">Expense Name</label>
+                      <input required type="text" value={formData.expense_name} onChange={(e) => setFormData({...formData, expense_name: e.target.value})} placeholder="e.g., Electric Bill, Groceries, etc." className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" />
+                    </div>
+
+                    {/* Toggle between contact and freeform recipient */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-medium text-gray-700">Recipient</label>
+                        <button
+                          type="button"
+                          onClick={() => setUseContact(!useContact)}
+                          className="text-xs text-primary-600 hover:text-primary-800 font-medium"
+                        >
+                          {useContact ? 'Use Custom Recipient' : 'Use Contact'}
+                        </button>
+                      </div>
+
+                      {useContact ? (
+                        <div>
+                          {showQuickAdd ? (
+                            <ContactQuickAdd 
+                              onContactAdded={(newContact) => {
+                                setContacts([...contacts, newContact]);
+                                setFormData({...formData, contact_id: newContact.id, recipient: ''});
+                                setShowQuickAdd(false);
+                              }}
+                              onCancel={() => setShowQuickAdd(false)}
+                            />
+                          ) : (
+                            <>
+                              <div className="flex gap-2">
+                                <select required value={formData.contact_id} onChange={(e) => setFormData({...formData, contact_id: e.target.value, recipient: ''})} className="flex-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                                  <option value="">Select contact...</option>
+                                  {contacts.map(c => <option key={c.id} value={c.id}>{c.current_name}</option>)}
+                                </select>
+                                <button
+                                  type="button"
+                                  onClick={() => setShowQuickAdd(true)}
+                                  className="px-3 py-2 text-sm text-primary-600 hover:text-primary-800 border border-primary-300 rounded-md"
+                                >
+                                  + New
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      ) : (
+                        <div>
+                          <input 
+                            required 
+                            type="text" 
+                            list="recipients"
+                            value={formData.recipient} 
+                            onChange={(e) => setFormData({...formData, recipient: e.target.value, contact_id: ''})} 
+                            placeholder="Enter recipient name..." 
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" 
+                          />
+                          <datalist id="recipients">
+                            {recentRecipients.map((r, idx) => (
+                              <option key={idx} value={r} />
+                            ))}
+                          </datalist>
+                          <p className="mt-1 text-xs text-gray-500">Recent recipients will appear as suggestions</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Description (Optional)</label>
+                      <input type="text" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} placeholder="Additional details..." className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Amount</label>
