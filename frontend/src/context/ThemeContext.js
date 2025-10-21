@@ -158,10 +158,14 @@ export const ThemeProvider = ({ children }) => {
   };
 
   const applyTheme = (themeData) => {
+    console.log('Applying theme:', themeData.name);
+    console.log('Theme colors:', themeData.colors);
     const root = document.documentElement;
     Object.entries(themeData.colors).forEach(([key, value]) => {
+      console.log(`Setting --color-${key} to ${value}`);
       root.style.setProperty(`--color-${key}`, value);
     });
+    console.log('Theme applied successfully');
   };
 
   const updateTheme = async (newTheme) => {
