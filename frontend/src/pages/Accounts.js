@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { accountsAPI } from '../utils/api';
+import { accountsAPI, dashboardAPI } from '../utils/api';
 import { formatCurrency } from '../utils/formatters';
 import BalanceDisplay from '../components/BalanceDisplay';
+import SafeToSpendDisplay from '../components/SafeToSpendDisplay';
 
 const Accounts = () => {
   const [accounts, setAccounts] = useState([]);
+  const [safeToSpend, setSafeToSpend] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState(null);
@@ -19,6 +21,7 @@ const Accounts = () => {
 
   useEffect(() => {
     loadAccounts();
+    loadSafeToSpend();
   }, []);
 
   const loadAccounts = async () => {
@@ -29,6 +32,15 @@ const Accounts = () => {
       console.error('Failed to load accounts:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadSafeToSpend = async () => {
+    try {
+      const response = await dashboardAPI.getSummary({ days_ahead: 30 });
+      setSafeToSpend(response.data.data.summary.safe_to_spend);
+    } catch (error) {
+      console.error('Failed to load safe-to-spend:', error);
     }
   };
 
@@ -98,7 +110,11 @@ const Accounts = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">🏦 Accounts</h1>
-          <p className="mt-1 text-sm text-gray-500">Total Balance: <span className="font-semibold text-gray-900"><BalanceDisplay amount={getTotalBalance()} size="sm" /></span></p>
+          <div className="mt-2 flex items-center space-x-4">
+            <p className="text-sm text-gray-500">Total Balance: <span className="font-semibold text-gray-900"><BalanceDisplay amount={getTotalBalance()} size="sm" /></span></p>
+            <span className="text-gray-300">|</span>
+            <SafeToSpendDisplay amount={safeToSpend} size="sm" />
+          </div>
         </div>
         <button
           onClick={() => setShowModal(true)}

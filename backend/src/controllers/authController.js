@@ -227,15 +227,67 @@ async function getProfile(req, res) {
  * Update user profile
  */
 async function updateProfile(req, res) {
-    const { email, current_password, new_password } = req.body;
+    const { username, email, profile_image_url, current_password, new_password } = req.body;
 
     try {
+        const updates = [];
+        const values = [];
+        let paramCount = 1;
+
+        // Check if username is being changed and if it's available
+        if (username) {
+            const usernameCheck = await db.query(
+                'SELECT id FROM USERS WHERE username = $1 AND id != $2',
+                [username, req.user.id]
+            );
+
+            if (usernameCheck.rows.length > 0) {
+                return res.status(409).json({
+                    success: false,
+                    message: 'Username already taken',
+                    code: 'USERNAME_EXISTS'
+                });
+            }
+
+            updates.push(`username = $${paramCount}`);
+            values.push(username);
+            paramCount++;
+        }
+
+        // Check if email is being changed and if it's available
+        if (email) {
+            const emailCheck = await db.query(
+                'SELECT id FROM USERS WHERE email = $1 AND id != $2',
+                [email, req.user.id]
+            );
+
+            if (emailCheck.rows.length > 0) {
+                return res.status(409).json({
+                    success: false,
+                    message: 'Email already in use',
+                    code: 'EMAIL_EXISTS'
+                });
+            }
+
+            updates.push(`email = $${paramCount}`);
+            values.push(email);
+            paramCount++;
+        }
+
+        // Update profile image URL if provided
+        if (profile_image_url !== undefined) {
+            updates.push(`profile_image_url = $${paramCount}`);
+            values.push(profile_image_url);
+            paramCount++;
+        }
+
         // If changing password, verify current password first
         if (new_password) {
             if (!current_password) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Current password is required to set a new password'
+                    message: 'Current password is required to set a new password',
+                    code: 'PASSWORD_REQUIRED'
                 });
             }
 
@@ -249,35 +301,41 @@ async function updateProfile(req, res) {
             if (!isValidPassword) {
                 return res.status(401).json({
                     success: false,
-                    message: 'Current password is incorrect'
+                    message: 'Current password is incorrect',
+                    code: 'INVALID_PASSWORD'
                 });
             }
 
             const new_password_hash = await bcrypt.hash(new_password, SALT_ROUNDS);
-
-            await db.query(
-                'UPDATE USERS SET password_hash = $1 WHERE id = $2',
-                [new_password_hash, req.user.id]
-            );
+            updates.push(`password_hash = $${paramCount}`);
+            values.push(new_password_hash);
+            paramCount++;
         }
 
-        // Update email if provided
-        if (email) {
-            await db.query(
-                'UPDATE USERS SET email = $1 WHERE id = $2',
-                [email, req.user.id]
-            );
-        }
+        // Perform updates if any
+        if (updates.length > 0) {
+            values.push(req.user.id);
+            const updateQuery = `UPDATE USERS SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = $${paramCount} RETURNING id, username, email, profile_image_url`;
+            
+            const result = await db.query(updateQuery, values);
 
-        res.json({
-            success: true,
-            message: 'Profile updated successfully'
-        });
+            res.json({
+                success: true,
+                message: 'Profile updated successfully',
+                data: result.rows[0]
+            });
+        } else {
+            res.json({
+                success: true,
+                message: 'No changes made'
+            });
+        }
     } catch (error) {
         console.error('Update profile error:', error);
         res.status(500).json({
             success: false,
-            message: 'Server error updating profile'
+            message: 'Server error updating profile',
+            code: 'SERVER_ERROR'
         });
     }
 }

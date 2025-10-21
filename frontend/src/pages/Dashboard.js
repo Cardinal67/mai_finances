@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { dashboardAPI } from '../utils/api';
 import { formatCurrency, formatRelativeTime, getStatusColor } from '../utils/formatters';
 import BalanceDisplay from '../components/BalanceDisplay';
+import SafeToSpendDisplay from '../components/SafeToSpendDisplay';
 
 const Dashboard = () => {
   const [data, setData] = useState(null);
@@ -136,6 +137,9 @@ const Dashboard = () => {
                   </dt>
                   <dd className="font-semibold text-gray-900">
                     <BalanceDisplay amount={summary.total_available} size="lg" />
+                  </dd>
+                  <dd className="mt-2">
+                    <SafeToSpendDisplay amount={summary.safe_to_spend} size="sm" />
                   </dd>
                 </dl>
               </div>

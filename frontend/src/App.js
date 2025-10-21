@@ -18,6 +18,7 @@ import Calendar from './pages/Calendar';
 import SpendingPlans from './pages/SpendingPlans';
 import Settings from './pages/Settings';
 import CreditCards from './pages/CreditCards';
+import Profile from './pages/Profile';
 
 function App() {
   return (
@@ -116,6 +117,16 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <CreditCards />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Profile />
                 </Layout>
               </ProtectedRoute>
             }
