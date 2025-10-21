@@ -5,16 +5,27 @@ async function testBalanceToggle() {
   try {
     console.log('🧪 Testing Balance Mask Toggle...\n');
     
-    // Step 1: Register a test user
-    console.log('1️⃣ Registering test user...');
-    const registerRes = await axios.post('http://localhost:3001/api/auth/register', {
-      username: 'balancetest',
-      email: 'balancetest@example.com',
-      password: 'TestPass123!'
-    });
-    
-    const token = registerRes.data.data.token;
-    console.log('✅ User registered, token obtained\n');
+    // Step 1: Register or login
+    console.log('1️⃣ Getting auth token...');
+    let token;
+    const testUsername = `balancetest${Date.now()}`;
+    try {
+      const registerRes = await axios.post('http://localhost:3001/api/auth/register', {
+        username: testUsername,
+        email: `${testUsername}@example.com`,
+        password: 'TestPass123!'
+      });
+      token = registerRes.data.data.token;
+      console.log('✅ New user registered, token obtained\n');
+    } catch (error) {
+      // User might already exist, try login
+      const loginRes = await axios.post('http://localhost:3001/api/auth/login', {
+        username: 'balancetest',
+        password: 'TestPass123!'
+      });
+      token = loginRes.data.data.token;
+      console.log('✅ Logged in with existing user, token obtained\n');
+    }
     
     // Step 2: Get current preferences
     console.log('2️⃣ Getting current preferences...');

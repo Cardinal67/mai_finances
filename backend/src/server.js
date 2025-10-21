@@ -30,6 +30,11 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Request logging middleware
 app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+    if (req.path === '/api/preferences' && req.method === 'PUT') {
+        console.log('[MIDDLEWARE] Preferences update body:', JSON.stringify(req.body));
+        console.log('[MIDDLEWARE] Body type:', typeof req.body);
+        console.log('[MIDDLEWARE] Body keys:', Object.keys(req.body));
+    }
     next();
 });
 
