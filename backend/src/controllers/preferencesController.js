@@ -106,8 +106,8 @@ async function updatePreferences(req, res) {
             const createResult = await db.query(
                 `INSERT INTO USER_PREFERENCES (user_id, timezone, date_range_preference,
                     safety_buffer_type, safety_buffer_amount, default_currency,
-                    dashboard_widgets, table_columns, display_density, theme, notification_preferences)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                    dashboard_widgets, table_columns, display_density, theme, notification_preferences, balance_masked)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
                  RETURNING *`,
                 [
                     userId,
@@ -120,7 +120,8 @@ async function updatePreferences(req, res) {
                     updates.table_columns || {},
                     updates.display_density || 'comfortable',
                     updates.theme || 'light',
-                    updates.notification_preferences || {}
+                    updates.notification_preferences || {},
+                    updates.balance_masked !== undefined ? updates.balance_masked : true
                 ]
             );
 
