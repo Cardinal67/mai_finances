@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
 import { paymentsAPI, contactsAPI, accountsAPI, creditCardsAPI } from '../utils/api';
 import { formatCurrency, formatDate, getStatusColor, getPaymentTypeColor } from '../utils/formatters';
+import { useToast } from '../context/ToastContext';
 import ContactQuickAdd from '../components/ContactQuickAdd';
+import AccountQuickAdd from '../components/AccountQuickAdd';
+import CreditCardQuickAdd from '../components/CreditCardQuickAdd';
 
 const Payments = () => {
+  const { success, error } = useToast();
   const [payments, setPayments] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [accounts, setAccounts] = useState([]);
@@ -14,6 +18,8 @@ const Payments = () => {
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [useContact, setUseContact] = useState(false);
+  const [showAccountQuickAdd, setShowAccountQuickAdd] = useState(false);
+  const [showCardQuickAdd, setShowCardQuickAdd] = useState(false);
   const [formData, setFormData] = useState({
     expense_name: '',
     recipient: '',
@@ -70,8 +76,10 @@ const Payments = () => {
       
       if (selectedPayment) {
         await paymentsAPI.update(selectedPayment.id, submitData);
+        success('Expense updated successfully!');
       } else {
         await paymentsAPI.create(submitData);
+        success('Expense created successfully!');
       }
       setShowModal(false);
       setSelectedPayment(null);
@@ -94,10 +102,12 @@ const Payments = () => {
         notes: '',
       });
       setUseContact(false);
+      setShowAccountQuickAdd(false);
+      setShowCardQuickAdd(false);
       loadData();
-    } catch (error) {
-      console.error('Failed to save payment:', error);
-      alert(error.response?.data?.message || 'Failed to save payment');
+    } catch (err) {
+      console.error('Failed to save payment:', err);
+      error(err.response?.data?.message || 'Failed to save expense');
     }
   };
 
@@ -138,13 +148,14 @@ const Payments = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this payment?')) return;
+    if (!window.confirm('Are you sure you want to delete this expense?')) return;
     try {
       await paymentsAPI.delete(id);
+      success('Expense deleted successfully!');
       loadData();
-    } catch (error) {
-      console.error('Failed to delete payment:', error);
-      alert('Failed to delete payment');
+    } catch (err) {
+      console.error('Failed to delete payment:', err);
+      error('Failed to delete expense');
     }
   };
 
@@ -315,37 +326,69 @@ const Payments = () => {
 
                     {/* Payment Method with Accounts and Cards */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Payment Method</label>
-                      <select 
-                        value={formData.payment_method === 'cash' ? 'cash' : 
-                               formData.from_account_id ? `account_${formData.from_account_id}` : 
-                               formData.from_credit_card_id ? `card_${formData.from_credit_card_id}` : 'cash'} 
-                        onChange={handlePaymentMethodChange} 
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                      >
-                        <option value="cash">💵 Cash</option>
-                        <optgroup label="Bank Accounts">
-                          {accounts.map(account => (
-                            <option key={account.id} value={`account_${account.id}`}>
-                              🏦 {account.account_name} ({account.account_type})
-                            </option>
-                          ))}
-                          {accounts.length === 0 && <option disabled>No accounts available</option>}
-                        </optgroup>
-                        <optgroup label="Credit Cards">
-                          {creditCards.map(card => (
-                            <option key={card.id} value={`card_${card.id}`}>
-                              💳 {card.card_name} (••••{card.last_4_digits})
-                            </option>
-                          ))}
-                          {creditCards.length === 0 && <option disabled>No credit cards available</option>}
-                        </optgroup>
-                      </select>
-                      {(accounts.length === 0 || creditCards.length === 0) && (
-                        <p className="mt-1 text-xs text-gray-500">
-                          {accounts.length === 0 && 'Add accounts in the Accounts page. '}
-                          {creditCards.length === 0 && 'Add credit cards in the Credit Cards page.'}
-                        </p>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                      {showAccountQuickAdd ? (
+                        <AccountQuickAdd
+                          onAccountAdded={(account) => {
+                            setAccounts([...accounts, account]);
+                            setFormData({...formData, payment_method: 'account', from_account_id: account.id, from_credit_card_id: ''});
+                            setShowAccountQuickAdd(false);
+                          }}
+                          onCancel={() => setShowAccountQuickAdd(false)}
+                        />
+                      ) : showCardQuickAdd ? (
+                        <CreditCardQuickAdd
+                          onCardAdded={(card) => {
+                            setCreditCards([...creditCards, card]);
+                            setFormData({...formData, payment_method: 'credit_card', from_account_id: '', from_credit_card_id: card.id});
+                            setShowCardQuickAdd(false);
+                          }}
+                          onCancel={() => setShowCardQuickAdd(false)}
+                        />
+                      ) : (
+                        <>
+                          <select 
+                            value={formData.payment_method === 'cash' ? 'cash' : 
+                                   formData.from_account_id ? `account_${formData.from_account_id}` : 
+                                   formData.from_credit_card_id ? `card_${formData.from_credit_card_id}` : 'cash'} 
+                            onChange={handlePaymentMethodChange} 
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                          >
+                            <option value="cash">💵 Cash</option>
+                            <optgroup label="Bank Accounts">
+                              {accounts.map(account => (
+                                <option key={account.id} value={`account_${account.id}`}>
+                                  🏦 {account.account_name} ({account.account_type})
+                                </option>
+                              ))}
+                              {accounts.length === 0 && <option disabled>No accounts available</option>}
+                            </optgroup>
+                            <optgroup label="Credit Cards">
+                              {creditCards.map(card => (
+                                <option key={card.id} value={`card_${card.id}`}>
+                                  💳 {card.card_name} (••••{card.last_4_digits})
+                                </option>
+                              ))}
+                              {creditCards.length === 0 && <option disabled>No credit cards available</option>}
+                            </optgroup>
+                          </select>
+                          <div className="mt-2 flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setShowAccountQuickAdd(true)}
+                              className="flex-1 px-3 py-2 text-sm text-primary-600 hover:text-primary-800 border border-primary-300 rounded-md hover:bg-primary-50 transition-colors"
+                            >
+                              + Add Account
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setShowCardQuickAdd(true)}
+                              className="flex-1 px-3 py-2 text-sm text-primary-600 hover:text-primary-800 border border-primary-300 rounded-md hover:bg-primary-50 transition-colors"
+                            >
+                              + Add Card
+                            </button>
+                          </div>
+                        </>
                       )}
                     </div>
 
