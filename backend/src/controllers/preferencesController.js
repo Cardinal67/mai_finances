@@ -50,6 +50,9 @@ async function updatePreferences(req, res) {
     const updates = req.body;
 
     console.log('[PREFERENCES] Update request:', JSON.stringify(updates));
+    console.log('[PREFERENCES] Request body type:', typeof updates);
+    console.log('[PREFERENCES] Request body keys:', Object.keys(updates));
+    console.log('[PREFERENCES] Raw body:', updates);
 
     try {
         const allowedFields = [
