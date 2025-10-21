@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { paymentsAPI, contactsAPI } from '../utils/api';
+import { paymentsAPI, contactsAPI, accountsAPI, creditCardsAPI } from '../utils/api';
 import { formatCurrency, formatDate, getStatusColor, getPaymentTypeColor } from '../utils/formatters';
 import ContactQuickAdd from '../components/ContactQuickAdd';
 
 const Payments = () => {
   const [payments, setPayments] = useState([]);
   const [contacts, setContacts] = useState([]);
+  const [accounts, setAccounts] = useState([]);
+  const [creditCards, setCreditCards] = useState([]);
   const [recentRecipients, setRecentRecipients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -20,7 +22,14 @@ const Payments = () => {
     original_amount: '',
     due_date: '',
     payment_type: 'owed_by_me',
-    payment_method: '',
+    expense_type: 'personal',
+    payment_method: 'cash',
+    from_account_id: '',
+    from_credit_card_id: '',
+    is_recurring: false,
+    recurrence_frequency: 'monthly',
+    recurrence_interval: 1,
+    recurrence_end_date: '',
     notes: '',
   });
 
@@ -30,14 +39,18 @@ const Payments = () => {
 
   const loadData = async () => {
     try {
-      const [paymentsRes, contactsRes, recipientsRes] = await Promise.all([
+      const [paymentsRes, contactsRes, recipientsRes, accountsRes, cardsRes] = await Promise.all([
         paymentsAPI.getAll(),
         contactsAPI.getAll(),
         paymentsAPI.getRecentRecipients(),
+        accountsAPI.getAll(),
+        creditCardsAPI.getAll(),
       ]);
       setPayments(paymentsRes.data.data);
       setContacts(contactsRes.data.data);
       setRecentRecipients(recipientsRes.data.data || []);
+      setAccounts(accountsRes.data.data || []);
+      setCreditCards(cardsRes.data.data || []);
     } catch (error) {
       console.error('Failed to load data:', error);
     } finally {
@@ -48,10 +61,17 @@ const Payments = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Prepare data based on payment method
+      const submitData = { ...formData };
+      if (formData.payment_method === 'cash') {
+        submitData.from_account_id = null;
+        submitData.from_credit_card_id = null;
+      }
+      
       if (selectedPayment) {
-        await paymentsAPI.update(selectedPayment.id, formData);
+        await paymentsAPI.update(selectedPayment.id, submitData);
       } else {
-        await paymentsAPI.create(formData);
+        await paymentsAPI.create(submitData);
       }
       setShowModal(false);
       setSelectedPayment(null);
@@ -63,7 +83,14 @@ const Payments = () => {
         original_amount: '',
         due_date: '',
         payment_type: 'owed_by_me',
-        payment_method: '',
+        expense_type: 'personal',
+        payment_method: 'cash',
+        from_account_id: '',
+        from_credit_card_id: '',
+        is_recurring: false,
+        recurrence_frequency: 'monthly',
+        recurrence_interval: 1,
+        recurrence_end_date: '',
         notes: '',
       });
       setUseContact(false);
@@ -86,10 +113,28 @@ const Payments = () => {
       original_amount: payment.original_amount,
       due_date: payment.due_date.split('T')[0],
       payment_type: payment.payment_type,
-      payment_method: payment.payment_method || '',
+      expense_type: payment.expense_type || 'personal',
+      payment_method: payment.payment_method || 'cash',
+      from_account_id: payment.from_account_id || '',
+      from_credit_card_id: payment.from_credit_card_id || '',
+      is_recurring: payment.is_recurring || false,
+      recurrence_frequency: payment.recurrence_frequency || 'monthly',
+      recurrence_interval: payment.recurrence_interval || 1,
+      recurrence_end_date: payment.recurrence_end_date ? payment.recurrence_end_date.split('T')[0] : '',
       notes: payment.notes || '',
     });
     setShowModal(true);
+  };
+  
+  const handlePaymentMethodChange = (e) => {
+    const value = e.target.value;
+    if (value === 'cash') {
+      setFormData({...formData, payment_method: 'cash', from_account_id: '', from_credit_card_id: ''});
+    } else if (value.startsWith('account_')) {
+      setFormData({...formData, payment_method: 'account', from_account_id: value.replace('account_', ''), from_credit_card_id: ''});
+    } else if (value.startsWith('card_')) {
+      setFormData({...formData, payment_method: 'credit_card', from_account_id: '', from_credit_card_id: value.replace('card_', '')});
+    }
   };
 
   const handleDelete = async (id) => {
@@ -252,25 +297,116 @@ const Payments = () => {
                       <label className="block text-sm font-medium text-gray-700">Due Date</label>
                       <input required type="date" value={formData.due_date} onChange={(e) => setFormData({...formData, due_date: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" />
                     </div>
+
+                    {/* Expense Type */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Type</label>
-                      <select value={formData.payment_type} onChange={(e) => setFormData({...formData, payment_type: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                        <option value="owed_by_me">I Owe</option>
-                        <option value="owed_to_me">Owed to Me</option>
+                      <label className="block text-sm font-medium text-gray-700">Expense Type</label>
+                      <select value={formData.expense_type} onChange={(e) => setFormData({...formData, expense_type: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                        <option value="personal">Personal Payment</option>
+                        <option value="bill">Bill</option>
+                        <option value="subscription">Subscription</option>
+                        <option value="loan">Loan Payment</option>
+                        <option value="rent">Rent</option>
+                        <option value="insurance">Insurance</option>
+                        <option value="utilities">Utilities</option>
+                        <option value="other">Other</option>
                       </select>
                     </div>
+
+                    {/* Payment Method with Accounts and Cards */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Payment Method (Optional)</label>
-                      <select value={formData.payment_method} onChange={(e) => setFormData({...formData, payment_method: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                        <option value="">Select method...</option>
-                        <option value="credit_card">💳 Credit Card</option>
-                        <option value="debit_card">💳 Debit Card</option>
-                        <option value="bank_account">🏦 Bank Account</option>
+                      <label className="block text-sm font-medium text-gray-700">Payment Method</label>
+                      <select 
+                        value={formData.payment_method === 'cash' ? 'cash' : 
+                               formData.from_account_id ? `account_${formData.from_account_id}` : 
+                               formData.from_credit_card_id ? `card_${formData.from_credit_card_id}` : 'cash'} 
+                        onChange={handlePaymentMethodChange} 
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                      >
                         <option value="cash">💵 Cash</option>
-                        <option value="check">✔️ Check</option>
-                        <option value="other">📝 Other</option>
+                        <optgroup label="Bank Accounts">
+                          {accounts.map(account => (
+                            <option key={account.id} value={`account_${account.id}`}>
+                              🏦 {account.account_name} ({account.account_type})
+                            </option>
+                          ))}
+                          {accounts.length === 0 && <option disabled>No accounts available</option>}
+                        </optgroup>
+                        <optgroup label="Credit Cards">
+                          {creditCards.map(card => (
+                            <option key={card.id} value={`card_${card.id}`}>
+                              💳 {card.card_name} (••••{card.last_4_digits})
+                            </option>
+                          ))}
+                          {creditCards.length === 0 && <option disabled>No credit cards available</option>}
+                        </optgroup>
                       </select>
+                      {(accounts.length === 0 || creditCards.length === 0) && (
+                        <p className="mt-1 text-xs text-gray-500">
+                          {accounts.length === 0 && 'Add accounts in the Accounts page. '}
+                          {creditCards.length === 0 && 'Add credit cards in the Credit Cards page.'}
+                        </p>
+                      )}
                     </div>
+
+                    {/* Recurring Options */}
+                    <div className="border-t border-gray-200 pt-4">
+                      <label className="flex items-center space-x-2">
+                        <input 
+                          type="checkbox" 
+                          checked={formData.is_recurring} 
+                          onChange={(e) => setFormData({...formData, is_recurring: e.target.checked})} 
+                          className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                        />
+                        <span className="text-sm font-medium text-gray-700">This is a recurring expense</span>
+                      </label>
+                      
+                      {formData.is_recurring && (
+                        <div className="mt-3 space-y-3 pl-6 border-l-2 border-primary-200">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700">Frequency</label>
+                              <select 
+                                value={formData.recurrence_frequency} 
+                                onChange={(e) => setFormData({...formData, recurrence_frequency: e.target.value})} 
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
+                              >
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="biweekly">Every 2 Weeks</option>
+                                <option value="monthly">Monthly</option>
+                                <option value="quarterly">Quarterly</option>
+                                <option value="annually">Annually</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700">Repeat Every</label>
+                              <div className="flex items-center mt-1 space-x-2">
+                                <input 
+                                  type="number" 
+                                  min="1" 
+                                  value={formData.recurrence_interval} 
+                                  onChange={(e) => setFormData({...formData, recurrence_interval: e.target.value})} 
+                                  className="block w-20 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
+                                />
+                                <span className="text-xs text-gray-500">{formData.recurrence_frequency}(s)</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700">End Date (Optional)</label>
+                            <input 
+                              type="date" 
+                              value={formData.recurrence_end_date} 
+                              onChange={(e) => setFormData({...formData, recurrence_end_date: e.target.value})} 
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm"
+                            />
+                            <p className="mt-1 text-xs text-gray-500">Leave empty to repeat indefinitely</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Notes</label>
                       <textarea value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} rows={3} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"></textarea>
