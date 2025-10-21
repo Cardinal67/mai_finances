@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react';
 import { incomeAPI, accountsAPI } from '../utils/api';
 import { formatCurrency, formatDate } from '../utils/formatters';
+import { useToast } from '../context/ToastContext';
+import AccountQuickAdd from '../components/AccountQuickAdd';
 
 const Income = () => {
+  const { success, error } = useToast();
   const [incomeStreams, setIncomeStreams] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedIncome, setSelectedIncome] = useState(null);
+  const [showAccountQuickAdd, setShowAccountQuickAdd] = useState(false);
   const [formData, setFormData] = useState({
     source_name: '',
     source_type: 'salary',
@@ -53,18 +57,32 @@ const Income = () => {
           : (formData.to_account_id || null)
       };
       
+      // Convert empty strings to null for date fields
+      if (submitData.next_expected_date === '') {
+        submitData.next_expected_date = null;
+      }
+      if (submitData.end_date === '') {
+        submitData.end_date = null;
+      }
+      if (submitData.last_received_date === '') {
+        submitData.last_received_date = null;
+      }
+      
       if (selectedIncome) {
         await incomeAPI.update(selectedIncome.id, submitData);
+        success('Income source updated successfully!');
       } else {
         await incomeAPI.create(submitData);
+        success('Income source created successfully!');
       }
       setShowModal(false);
       setSelectedIncome(null);
+      setShowAccountQuickAdd(false);
       resetForm();
       loadData();
-    } catch (error) {
-      console.error('Failed to save income:', error);
-      alert(error.response?.data?.message || 'Failed to save income');
+    } catch (err) {
+      console.error('Failed to save income:', err);
+      error(err.response?.data?.message || 'Failed to save income');
     }
   };
 
@@ -109,10 +127,11 @@ const Income = () => {
     if (!window.confirm('Are you sure you want to delete this income stream?')) return;
     try {
       await incomeAPI.delete(id);
+      success('Income source deleted successfully!');
       loadData();
-    } catch (error) {
-      console.error('Failed to delete income:', error);
-      alert('Failed to delete income');
+    } catch (err) {
+      console.error('Failed to delete income:', err);
+      error('Failed to delete income');
     }
   };
 
