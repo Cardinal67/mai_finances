@@ -67,10 +67,14 @@ async function updatePreferences(req, res) {
 
         for (const [key, value] of Object.entries(updates)) {
             console.log(`[PREFERENCES] Checking field: ${key} = ${value} (type: ${typeof value}), allowed: ${allowedFields.includes(key)}, not undefined: ${value !== undefined}`);
+            // Allow all values except undefined (includes false, 0, null, empty string)
             if (allowedFields.includes(key) && value !== undefined) {
                 updateFields.push(`${key} = $${paramIndex}`);
                 values.push(value);
                 paramIndex++;
+                console.log(`[PREFERENCES] ✅ Added field: ${key} = $${paramIndex-1}`);
+            } else {
+                console.log(`[PREFERENCES] ❌ Rejected field: ${key}, reason: ${!allowedFields.includes(key) ? 'not allowed' : 'undefined value'}`);
             }
         }
 
