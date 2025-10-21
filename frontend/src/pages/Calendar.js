@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { calendarAPI, paymentsAPI, incomeAPI, contactsAPI, accountsAPI } from '../utils/api';
+import { calendarAPI, paymentsAPI, incomeAPI, contactsAPI, accountsAPI, creditCardsAPI, paymentsAPI as receipientsAPI } from '../utils/api';
 import { formatCurrency } from '../utils/formatters';
 
 const Calendar = () => {
   const [events, setEvents] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [accounts, setAccounts] = useState([]);
+  const [creditCards, setCreditCards] = useState([]);
+  const [recentRecipients, setRecentRecipients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
@@ -24,18 +26,22 @@ const Calendar = () => {
       const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
       const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
       
-      const [eventsRes, contactsRes, accountsRes] = await Promise.all([
+      const [eventsRes, contactsRes, accountsRes, cardsRes, recipientsRes] = await Promise.all([
         calendarAPI.getEvents({
           start_date: firstDay.toISOString().split('T')[0],
           end_date: lastDay.toISOString().split('T')[0],
         }),
         contactsAPI.getAll(),
         accountsAPI.getAll(),
+        creditCardsAPI.getAll(),
+        paymentsAPI.getRecentRecipients(),
       ]);
       
       setEvents(eventsRes.data.data.events);
       setContacts(contactsRes.data.data);
       setAccounts(accountsRes.data.data);
+      setCreditCards(cardsRes.data.data || []);
+      setRecentRecipients(recipientsRes.data.data || []);
     } catch (error) {
       console.error('Failed to load data:', error);
     } finally {
@@ -104,12 +110,22 @@ const Calendar = () => {
     
     if (type === 'expense') {
       setFormData({
+        expense_name: '',
+        recipient: '',
         contact_id: '',
         description: '',
         original_amount: '',
         due_date: formattedDate,
         payment_type: 'owed_by_me',
-        payment_method: '',
+        expense_type: 'personal',
+        payment_method: 'cash',
+        from_account_id: '',
+        from_credit_card_id: '',
+        is_recurring: false,
+        recurrence_frequency: 'monthly',
+        recurrence_interval: 1,
+        recurrence_end_date: '',
+        notes: '',
       });
     } else if (type === 'income') {
       setFormData({
@@ -119,6 +135,17 @@ const Calendar = () => {
         next_expected_date: formattedDate,
         to_account_id: '',
       });
+    }
+  };
+  
+  const handlePaymentMethodChange = (e) => {
+    const value = e.target.value;
+    if (value === 'cash') {
+      setFormData({...formData, payment_method: 'cash', from_account_id: '', from_credit_card_id: ''});
+    } else if (value.startsWith('account_')) {
+      setFormData({...formData, payment_method: 'account', from_account_id: value.replace('account_', ''), from_credit_card_id: ''});
+    } else if (value.startsWith('card_')) {
+      setFormData({...formData, payment_method: 'credit_card', from_account_id: '', from_credit_card_id: value.replace('card_', '')});
     }
   };
 
@@ -305,32 +332,94 @@ const Calendar = () => {
               </div>
               
               {addFormType === 'expense' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Contact</label>
-                    <select required value={formData.contact_id} onChange={(e) => setFormData({...formData, contact_id: e.target.value})} className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                      <option value="">Select contact...</option>
-                      {contacts.map(c => <option key={c.id} value={c.id}>{c.current_name}</option>)}
-                    </select>
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <input required type="text" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" />
-                  </div>
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {/* Expense Name */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
-                    <input required type="number" step="0.01" value={formData.original_amount} onChange={(e) => setFormData({...formData, original_amount: e.target.value})} className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" />
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Expense Name</label>
+                    <input required type="text" value={formData.expense_name} onChange={(e) => setFormData({...formData, expense_name: e.target.value})} placeholder="e.g., Electric Bill, Groceries" className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" />
                   </div>
+
+                  {/* Recipient */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-                    <select value={formData.payment_method} onChange={(e) => setFormData({...formData, payment_method: e.target.value})} className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                      <option value="">Select...</option>
-                      <option value="credit_card">💳 Credit Card</option>
-                      <option value="debit_card">💳 Debit Card</option>
-                      <option value="bank_account">🏦 Bank Account</option>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Recipient</label>
+                    <input required type="text" list="calendar-recipients" value={formData.recipient} onChange={(e) => setFormData({...formData, recipient: e.target.value})} placeholder="Enter recipient name" className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" />
+                    <datalist id="calendar-recipients">
+                      {recentRecipients.map((r, idx) => <option key={idx} value={r} />)}
+                    </datalist>
+                  </div>
+                  
+                  {/* Amount and Expense Type */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Amount</label>
+                      <input required type="number" step="0.01" value={formData.original_amount} onChange={(e) => setFormData({...formData, original_amount: e.target.value})} className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Type</label>
+                      <select value={formData.expense_type} onChange={(e) => setFormData({...formData, expense_type: e.target.value})} className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                        <option value="personal">Personal</option>
+                        <option value="bill">Bill</option>
+                        <option value="subscription">Subscription</option>
+                        <option value="loan">Loan</option>
+                        <option value="rent">Rent</option>
+                        <option value="insurance">Insurance</option>
+                        <option value="utilities">Utilities</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Payment Method */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Payment Method</label>
+                    <select value={formData.payment_method === 'cash' ? 'cash' : formData.from_account_id ? `account_${formData.from_account_id}` : formData.from_credit_card_id ? `card_${formData.from_credit_card_id}` : 'cash'} onChange={handlePaymentMethodChange} className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
                       <option value="cash">💵 Cash</option>
-                      <option value="check">✔️ Check</option>
+                      <optgroup label="Bank Accounts">
+                        {accounts.map(account => <option key={account.id} value={`account_${account.id}`}>🏦 {account.account_name}</option>)}
+                      </optgroup>
+                      <optgroup label="Credit Cards">
+                        {creditCards.map(card => <option key={card.id} value={`card_${card.id}`}>💳 {card.card_name} (••••{card.last_4_digits})</option>)}
+                      </optgroup>
                     </select>
+                  </div>
+
+                  {/* Recurring Checkbox */}
+                  <div className="border-t border-gray-300 pt-2">
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" checked={formData.is_recurring} onChange={(e) => setFormData({...formData, is_recurring: e.target.checked})} className="rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
+                      <span className="text-xs font-medium text-gray-700">Recurring Expense</span>
+                    </label>
+                    {formData.is_recurring && (
+                      <div className="mt-2 space-y-2 pl-4 border-l-2 border-primary-200">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">Frequency</label>
+                            <select value={formData.recurrence_frequency} onChange={(e) => setFormData({...formData, recurrence_frequency: e.target.value})} className="w-full text-xs rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                              <option value="daily">Daily</option>
+                              <option value="weekly">Weekly</option>
+                              <option value="biweekly">Biweekly</option>
+                              <option value="monthly">Monthly</option>
+                              <option value="quarterly">Quarterly</option>
+                              <option value="annually">Annually</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">Every</label>
+                            <input type="number" min="1" value={formData.recurrence_interval} onChange={(e) => setFormData({...formData, recurrence_interval: e.target.value})} className="w-full text-xs rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">End Date (Optional)</label>
+                          <input type="date" value={formData.recurrence_end_date} onChange={(e) => setFormData({...formData, recurrence_end_date: e.target.value})} className="w-full text-xs rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Notes */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Notes (Optional)</label>
+                    <textarea value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} rows={2} className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"></textarea>
                   </div>
                 </div>
               ) : (
