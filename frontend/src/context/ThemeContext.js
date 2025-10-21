@@ -116,6 +116,13 @@ export const ThemeProvider = ({ children }) => {
         setTheme(parsedTheme);
       }
 
+      // Only try to load from backend if user is authenticated
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
       // Then load from backend for sync
       const response = await preferencesAPI.get();
       const preferences = response.data.data;
@@ -138,7 +145,12 @@ export const ThemeProvider = ({ children }) => {
         }
       }
     } catch (error) {
-      console.error('Failed to load theme:', error);
+      // Silently fail if user is not authenticated (401)
+      if (error.response?.status === 401) {
+        console.log('Theme load skipped - user not authenticated');
+      } else {
+        console.error('Failed to load theme:', error);
+      }
       applyTheme(defaultTheme);
     } finally {
       setLoading(false);
