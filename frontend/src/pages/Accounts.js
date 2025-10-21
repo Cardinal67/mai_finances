@@ -111,7 +111,7 @@ const Accounts = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">🏦 Accounts</h1>
           <div className="mt-2 flex items-center space-x-4">
-            <p className="text-sm text-gray-500">Total Balance: <span className="font-semibold text-gray-900"><BalanceDisplay amount={getTotalBalance()} size="sm" /></span></p>
+            <div className="text-sm text-gray-500">Total Balance: <span className="font-semibold text-gray-900"><BalanceDisplay amount={getTotalBalance()} size="sm" /></span></div>
             <span className="text-gray-300">|</span>
             <SafeToSpendDisplay amount={safeToSpend} size="sm" />
           </div>

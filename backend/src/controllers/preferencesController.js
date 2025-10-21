@@ -49,6 +49,8 @@ async function updatePreferences(req, res) {
     const userId = req.user.id;
     const updates = req.body;
 
+    console.log('[PREFERENCES] Update request:', JSON.stringify(updates));
+
     try {
         const allowedFields = [
             'timezone', 'date_range_preference', 'safety_buffer_type', 'safety_buffer_amount',
@@ -61,6 +63,7 @@ async function updatePreferences(req, res) {
         let paramIndex = 1;
 
         for (const [key, value] of Object.entries(updates)) {
+            console.log(`[PREFERENCES] Checking field: ${key} = ${value} (type: ${typeof value}), allowed: ${allowedFields.includes(key)}, not undefined: ${value !== undefined}`);
             if (allowedFields.includes(key) && value !== undefined) {
                 updateFields.push(`${key} = $${paramIndex}`);
                 values.push(value);
@@ -68,7 +71,11 @@ async function updatePreferences(req, res) {
             }
         }
 
+        console.log('[PREFERENCES] Update fields:', updateFields);
+        console.log('[PREFERENCES] Values:', values);
+
         if (updateFields.length === 0) {
+            console.log('[PREFERENCES] No valid fields to update');
             return res.status(400).json({
                 success: false,
                 message: 'No valid fields to update'
