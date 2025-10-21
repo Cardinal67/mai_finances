@@ -84,8 +84,8 @@ async function register(req, res) {
         await db.query(
             `INSERT INTO user_preferences (user_id, timezone, date_range_preference, 
              safety_buffer_type, safety_buffer_amount, default_currency, 
-             dashboard_widgets, table_columns, display_density, theme, notification_preferences)
-             VALUES ($1, 'UTC', 30, 'fixed', 0.00, 'USD', '{}', '{}', 'comfortable', 'light', '{}')`,
+             dashboard_widgets, table_columns, display_density, theme, notification_preferences, balance_masked)
+             VALUES ($1, 'UTC', 30, 'fixed', 0.00, 'USD', '{}', '{}', 'comfortable', 'light', '{}', TRUE)`,
             [newUser.id]
         );
         console.log('[AUTH] User preferences created successfully');
