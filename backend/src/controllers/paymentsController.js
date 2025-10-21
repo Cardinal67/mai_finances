@@ -154,10 +154,14 @@ async function createPayment(req, res) {
         currency = 'USD',
         due_date,
         payment_type,
+        expense_type = 'personal',
         payment_method,
+        from_account_id,
+        from_credit_card_id,
         is_recurring = false,
+        recurrence_frequency,
         recurrence_pattern,
-        recurrence_interval,
+        recurrence_interval = 1,
         recurrence_end_date,
         notes,
         priority = 0,
@@ -201,16 +205,18 @@ async function createPayment(req, res) {
             `INSERT INTO PAYMENTS (
                 user_id, contact_id, expense_name, recipient, description, 
                 original_amount, current_balance, currency, due_date, current_due_date, 
-                payment_type, payment_method, status, is_recurring, recurrence_pattern, 
+                payment_type, expense_type, payment_method, from_account_id, from_credit_card_id,
+                status, is_recurring, recurrence_frequency, recurrence_pattern, 
                 recurrence_interval, recurrence_end_date, notes, priority, 
                 created_at, updated_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $6, $7, $8, $8, $9, $10, 'unpaid', 
-                      $11, $12, $13, $14, $15, $16, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $6, $7, $8, $8, $9, $10, $11, $12, $13, 
+                      'unpaid', $14, $15, $16, $17, $18, $19, $20, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             RETURNING *`,
             [
                 userId, contact_id, expense_name, recipient, description,
-                original_amount, currency, due_date, payment_type, payment_method,
-                is_recurring, recurrence_pattern, recurrence_interval,
+                original_amount, currency, due_date, payment_type, expense_type, payment_method, 
+                from_account_id, from_credit_card_id,
+                is_recurring, recurrence_frequency, recurrence_pattern, recurrence_interval,
                 recurrence_end_date, notes, priority
             ]
         );
