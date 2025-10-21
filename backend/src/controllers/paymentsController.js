@@ -691,10 +691,10 @@ async function getRecentRecipients(req, res) {
 
     try {
         const result = await db.query(
-            `SELECT DISTINCT recipient
+            `SELECT DISTINCT ON (recipient) recipient, created_at
              FROM PAYMENTS
              WHERE user_id = $1 AND recipient IS NOT NULL AND recipient != ''
-             ORDER BY created_at DESC
+             ORDER BY recipient, created_at DESC
              LIMIT $2`,
             [userId, limit]
         );

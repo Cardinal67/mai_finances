@@ -27,14 +27,14 @@ async function getCalendar(req, res) {
                         p.original_amount - COALESCE(
                             (SELECT SUM(pt.amount) 
                              FROM PAYMENT_TRANSACTIONS pt 
-                             WHERE pt.payment_id = p.id AND pt.transaction_type = 'payment'), 
+                             WHERE pt.payment_id = p.id), 
                             0
                         ) as amount, 
-                        p.status, p.payment_type,
+                        p.status, p.payment_type, p.expense_name, p.recipient,
                         c.current_name as contact_name,
                         'payment' as event_type
                  FROM PAYMENTS p
-                 JOIN CONTACTS c ON p.contact_id = c.id
+                 LEFT JOIN CONTACTS c ON p.contact_id = c.id
                  WHERE p.user_id = $1
                    AND p.current_due_date BETWEEN $2 AND $3
                    AND p.status NOT IN ('paid_in_full', 'canceled')
