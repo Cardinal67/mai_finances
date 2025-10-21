@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
-import { calendarAPI, paymentsAPI, incomeAPI, contactsAPI, accountsAPI, creditCardsAPI, paymentsAPI as receipientsAPI } from '../utils/api';
+import { calendarAPI, paymentsAPI, incomeAPI, contactsAPI, accountsAPI, creditCardsAPI } from '../utils/api';
 import { formatCurrency } from '../utils/formatters';
+import { useToast } from '../context/ToastContext';
+import AccountQuickAdd from '../components/AccountQuickAdd';
+import CreditCardQuickAdd from '../components/CreditCardQuickAdd';
 
 const Calendar = () => {
+  const { success, error } = useToast();
   const [events, setEvents] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [accounts, setAccounts] = useState([]);
@@ -15,6 +19,8 @@ const Calendar = () => {
   const [addFormType, setAddFormType] = useState(null); // 'expense' or 'income'
   const [formData, setFormData] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const [showAccountQuickAdd, setShowAccountQuickAdd] = useState(false);
+  const [showCardQuickAdd, setShowCardQuickAdd] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -156,17 +162,21 @@ const Calendar = () => {
     try {
       if (addFormType === 'expense') {
         await paymentsAPI.create(formData);
+        success('Expense created successfully!');
       } else if (addFormType === 'income') {
         await incomeAPI.create(formData);
+        success('Income source created successfully!');
       }
       
       setShowAddForm(false);
       setAddFormType(null);
       setFormData({});
+      setShowAccountQuickAdd(false);
+      setShowCardQuickAdd(false);
       loadData();
-    } catch (error) {
-      console.error('Failed to create entry:', error);
-      alert('Failed to create entry. Please try again.');
+    } catch (err) {
+      console.error('Failed to create entry:', err);
+      error(err.response?.data?.message || 'Failed to create entry. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -372,15 +382,53 @@ const Calendar = () => {
                   {/* Payment Method */}
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Payment Method</label>
-                    <select value={formData.payment_method === 'cash' ? 'cash' : formData.from_account_id ? `account_${formData.from_account_id}` : formData.from_credit_card_id ? `card_${formData.from_credit_card_id}` : 'cash'} onChange={handlePaymentMethodChange} className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                      <option value="cash">💵 Cash</option>
-                      <optgroup label="Bank Accounts">
-                        {accounts.map(account => <option key={account.id} value={`account_${account.id}`}>🏦 {account.account_name}</option>)}
-                      </optgroup>
-                      <optgroup label="Credit Cards">
-                        {creditCards.map(card => <option key={card.id} value={`card_${card.id}`}>💳 {card.card_name} (••••{card.last_4_digits})</option>)}
-                      </optgroup>
-                    </select>
+                    {showAccountQuickAdd ? (
+                      <AccountQuickAdd
+                        onAccountAdded={(account) => {
+                          setAccounts([...accounts, account]);
+                          setFormData({...formData, payment_method: 'account', from_account_id: account.id, from_credit_card_id: ''});
+                          setShowAccountQuickAdd(false);
+                        }}
+                        onCancel={() => setShowAccountQuickAdd(false)}
+                      />
+                    ) : showCardQuickAdd ? (
+                      <CreditCardQuickAdd
+                        onCardAdded={(card) => {
+                          setCreditCards([...creditCards, card]);
+                          setFormData({...formData, payment_method: 'credit_card', from_account_id: '', from_credit_card_id: card.id});
+                          setShowCardQuickAdd(false);
+                        }}
+                        onCancel={() => setShowCardQuickAdd(false)}
+                      />
+                    ) : (
+                      <>
+                        <select value={formData.payment_method === 'cash' ? 'cash' : formData.from_account_id ? `account_${formData.from_account_id}` : formData.from_credit_card_id ? `card_${formData.from_credit_card_id}` : 'cash'} onChange={handlePaymentMethodChange} className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                          <option value="cash">💵 Cash</option>
+                          <optgroup label="Bank Accounts">
+                            {accounts.map(account => <option key={account.id} value={`account_${account.id}`}>🏦 {account.account_name}</option>)}
+                          </optgroup>
+                          <optgroup label="Credit Cards">
+                            {creditCards.map(card => <option key={card.id} value={`card_${card.id}`}>💳 {card.card_name} (••••{card.last_4_digits})</option>)}
+                          </optgroup>
+                        </select>
+                        <div className="mt-1.5 flex gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setShowAccountQuickAdd(true)}
+                            className="flex-1 px-2 py-1 text-xs text-primary-600 hover:text-primary-800 border border-primary-300 rounded hover:bg-primary-50"
+                          >
+                            + Account
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowCardQuickAdd(true)}
+                            className="flex-1 px-2 py-1 text-xs text-primary-600 hover:text-primary-800 border border-primary-300 rounded hover:bg-primary-50"
+                          >
+                            + Card
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* Recurring Checkbox */}
