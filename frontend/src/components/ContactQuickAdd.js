@@ -3,7 +3,7 @@ import { contactsAPI } from '../utils/api';
 
 const ContactQuickAdd = ({ onContactAdded, onCancel }) => {
   const [formData, setFormData] = useState({
-    contact_name: '',
+    current_name: '',
     contact_type: 'individual',
     email: '',
     phone: '',
@@ -22,7 +22,7 @@ const ContactQuickAdd = ({ onContactAdded, onCancel }) => {
       onContactAdded(newContact);
       // Reset form
       setFormData({
-        contact_name: '',
+        current_name: '',
         contact_type: 'individual',
         email: '',
         phone: '',
@@ -51,8 +51,8 @@ const ContactQuickAdd = ({ onContactAdded, onCancel }) => {
             <input
               required
               type="text"
-              value={formData.contact_name}
-              onChange={(e) => setFormData({ ...formData, contact_name: e.target.value })}
+              value={formData.current_name}
+              onChange={(e) => setFormData({ ...formData, current_name: e.target.value })}
               className="mt-1 block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
               placeholder="Contact name"
             />
