@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { ToastProvider } from './context/ToastContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 
@@ -24,8 +25,9 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Router>
-        <Routes>
+        <ToastProvider>
+          <Router>
+            <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -135,10 +137,10 @@ function App() {
           {/* Default redirect */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </Router>
+            </Routes>
+          </Router>
+        </ToastProvider>
       </AuthProvider>
-      </ToastProvider>
     </ThemeProvider>
   );
 }
