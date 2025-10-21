@@ -73,12 +73,11 @@ async function getCalendar(req, res) {
         if (includeTypes.includes('reminders')) {
             const remindersResult = await db.query(
                 `SELECT r.id, r.message as title, r.reminder_date as date,
-                        r.reminder_type, r.is_dismissed,
+                        r.reminder_type,
                         'reminder' as event_type
                  FROM REMINDERS r
                  WHERE r.user_id = $1
                    AND r.reminder_date BETWEEN $2 AND $3
-                   AND r.is_dismissed = false
                  ORDER BY r.reminder_date ASC`,
                 [userId, start_date, end_date]
             );

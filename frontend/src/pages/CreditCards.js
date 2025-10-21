@@ -48,10 +48,22 @@ const CreditCards = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Convert empty strings to null for numeric fields
+      const cleanedData = {
+        ...formData,
+        credit_limit: formData.credit_limit === '' ? null : formData.credit_limit,
+        current_balance: formData.current_balance === '' ? null : formData.current_balance,
+        minimum_payment: formData.minimum_payment === '' ? null : formData.minimum_payment,
+        apr: formData.apr === '' ? null : formData.apr,
+        payment_due_date: formData.payment_due_date === '' ? null : formData.payment_due_date,
+        expiration_month: formData.expiration_month === '' ? null : formData.expiration_month,
+        expiration_year: formData.expiration_year === '' ? null : formData.expiration_year,
+      };
+      
       if (selectedCard) {
-        await creditCardsAPI.update(selectedCard.id, formData);
+        await creditCardsAPI.update(selectedCard.id, cleanedData);
       } else {
-        await creditCardsAPI.create(formData);
+        await creditCardsAPI.create(cleanedData);
       }
       setShowModal(false);
       setSelectedCard(null);
