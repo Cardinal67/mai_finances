@@ -115,6 +115,26 @@ button:hover {
   background-color: color-mix(in srgb, var(--color-primary) 15%, var(--color-card)) !important;
 }
 
+/* Fix button text staying white on primary buttons */
+.bg-primary-600,
+.bg-primary-500,
+.hover\\:bg-primary-700:hover {
+  color: white !important;
+}
+
+/* Ensure button text doesn't turn white on gray backgrounds */
+.bg-white,
+.bg-gray-50,
+.bg-gray-100,
+.hover\\:bg-white:hover {
+  color: var(--color-textPrimary) !important;
+}
+
+/* Fix border buttons */
+.border-gray-300 {
+  color: var(--color-textPrimary) !important;
+}
+
 /* Form elements - inputs, textareas, selects */
 input[type="text"],
 input[type="email"],
@@ -165,6 +185,36 @@ select:disabled {
   color: var(--color-textSecondary) !important;
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Number input spinner buttons - style them with theme colors */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  opacity: 1;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  /* Remove default appearance */
+  -webkit-appearance: none;
+  margin: 0;
+  /* Add colored background */
+  background-color: var(--color-primary);
+  /* Add arrow icon */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='white' d='M6 3l3 3H3z'/%3E%3Cpath fill='white' d='M6 9l3-3H3z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  border-left: 1px solid var(--color-border);
+  border-radius: 0 4px 4px 0;
+}
+
+input[type="number"]::-webkit-inner-spin-button:hover,
+input[type="number"]::-webkit-outer-spin-button:hover {
+  background-color: color-mix(in srgb, var(--color-primary), black 15%);
+}
+
+/* Firefox number input - keep default but style the buttons */
+input[type="number"] {
+  -moz-appearance: textfield;
 }
 
 /* Select dropdown arrow for dark themes */
