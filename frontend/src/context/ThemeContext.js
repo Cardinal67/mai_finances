@@ -29,64 +29,94 @@ const defaultTheme = {
 
 const presetThemes = {
   default: defaultTheme,
+  light: {
+    name: 'Light',
+    colors: {
+      primary: '#3182ce',
+      secondary: '#805ad5',
+      background: '#f8f9fa',
+      card: '#ffffff',
+      textPrimary: '#1a202c',
+      textSecondary: '#4a5568',
+      success: '#38a169',
+      warning: '#dd6b20',
+      error: '#e53e3e',
+      border: '#e2e8f0',
+    }
+  },
   dark: {
     name: 'Dark',
     colors: {
-      primary: '#60a5fa',
-      secondary: '#a78bfa',
-      background: '#111827',
-      card: '#1f2937',
-      textPrimary: '#f9fafb',
-      textSecondary: '#d1d5db',
-      success: '#34d399',
-      warning: '#fbbf24',
-      error: '#f87171',
-      border: '#374151',
-    }
-  },
-  green: {
-    name: 'Green',
-    colors: {
-      primary: '#10b981',
-      secondary: '#14b8a6',
-      background: '#f0fdf4',
-      card: '#ffffff',
-      textPrimary: '#111827',
-      textSecondary: '#6b7280',
-      success: '#22c55e',
-      warning: '#f59e0b',
-      error: '#ef4444',
-      border: '#d1fae5',
-    }
-  },
-  purple: {
-    name: 'Purple',
-    colors: {
-      primary: '#8b5cf6',
-      secondary: '#a78bfa',
-      background: '#faf5ff',
-      card: '#ffffff',
-      textPrimary: '#111827',
-      textSecondary: '#6b7280',
-      success: '#10b981',
-      warning: '#f59e0b',
-      error: '#ef4444',
-      border: '#e9d5ff',
+      primary: '#4a9eff',
+      secondary: '#9d8dff',
+      background: '#0f1419',
+      card: '#1a1f2e',
+      textPrimary: '#e1e8ed',
+      textSecondary: '#8899a6',
+      success: '#00ba88',
+      warning: '#ffb84d',
+      error: '#ff6b6b',
+      border: '#2d3748',
     }
   },
   ocean: {
-    name: 'Ocean',
+    name: 'Ocean Blue',
     colors: {
-      primary: '#0ea5e9',
-      secondary: '#06b6d4',
-      background: '#f0f9ff',
-      card: '#ffffff',
-      textPrimary: '#0c4a6e',
-      textSecondary: '#475569',
+      primary: '#42a5f5',
+      secondary: '#26c6da',
+      background: '#0a1929',
+      card: '#132f4c',
+      textPrimary: '#e3f2fd',
+      textSecondary: '#90caf9',
+      success: '#66bb6a',
+      warning: '#ffa726',
+      error: '#ef5350',
+      border: '#1e4976',
+    }
+  },
+  forest: {
+    name: 'Forest Green',
+    colors: {
+      primary: '#66bb6a',
+      secondary: '#81c784',
+      background: '#0d1b0d',
+      card: '#1a2e1a',
+      textPrimary: '#e8f5e9',
+      textSecondary: '#a5d6a7',
+      success: '#4caf50',
+      warning: '#ffb74d',
+      error: '#f44336',
+      border: '#2e4e2e',
+    }
+  },
+  twilight: {
+    name: 'Twilight Purple',
+    colors: {
+      primary: '#a78bfa',
+      secondary: '#c084fc',
+      background: '#1a0f2e',
+      card: '#2d1b4e',
+      textPrimary: '#f3e8ff',
+      textSecondary: '#c4b5fd',
+      success: '#34d399',
+      warning: '#fbbf24',
+      error: '#f87171',
+      border: '#4c2889',
+    }
+  },
+  sunset: {
+    name: 'Sunset Warm',
+    colors: {
+      primary: '#fb923c',
+      secondary: '#f59e0b',
+      background: '#1a1410',
+      card: '#2d221a',
+      textPrimary: '#fef3e8',
+      textSecondary: '#fed7aa',
       success: '#10b981',
-      warning: '#f59e0b',
+      warning: '#fbbf24',
       error: '#ef4444',
-      border: '#bae6fd',
+      border: '#4a3428',
     }
   },
 };
