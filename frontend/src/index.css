@@ -32,6 +32,37 @@
   --color-border: #e5e7eb;
 }
 
+/* Apply theme colors to body */
+body {
+  background-color: var(--color-background) !important;
+  color: var(--color-textPrimary) !important;
+}
+
+/* Apply to all cards and containers */
+.bg-white {
+  background-color: var(--color-card) !important;
+}
+
+.bg-gray-50,
+.bg-gray-100 {
+  background-color: var(--color-background) !important;
+}
+
+.text-gray-900 {
+  color: var(--color-textPrimary) !important;
+}
+
+.text-gray-600,
+.text-gray-500,
+.text-gray-700 {
+  color: var(--color-textSecondary) !important;
+}
+
+.border-gray-200,
+.border-gray-300 {
+  border-color: var(--color-border) !important;
+}
+
 /* Apply theme colors to Tailwind classes */
 .bg-primary-50 { background-color: color-mix(in srgb, var(--color-primary) 10%, white); }
 .bg-primary-100 { background-color: color-mix(in srgb, var(--color-primary) 20%, white); }
