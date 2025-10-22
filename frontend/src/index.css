@@ -85,6 +85,36 @@ body {
 .focus\\:border-primary-500:focus { border-color: var(--color-primary); }
 .focus\\:ring-primary-500:focus { --tw-ring-color: var(--color-primary); }
 
+/* Enhanced hover states for better visual feedback */
+.hover\\:bg-gray-50:hover,
+.hover\\:bg-gray-100:hover {
+  background-color: color-mix(in srgb, var(--color-primary) 8%, var(--color-card)) !important;
+}
+
+.hover\\:text-gray-900:hover {
+  color: var(--color-primary) !important;
+}
+
+.hover\\:bg-gray-100:hover {
+  background-color: color-mix(in srgb, var(--color-primary) 12%, var(--color-card)) !important;
+}
+
+/* Navigation and interactive elements */
+a:hover,
+button:hover {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Enhance primary button hover */
+.hover\\:bg-primary-600:hover {
+  background-color: color-mix(in srgb, var(--color-primary), black 15%) !important;
+}
+
+/* Active/Selected states should stand out */
+.bg-primary-50 {
+  background-color: color-mix(in srgb, var(--color-primary) 15%, var(--color-card)) !important;
+}
+
 /* Form elements - inputs, textareas, selects */
 input[type="text"],
 input[type="email"],

@@ -38,10 +38,10 @@ const Layout = ({ children }) => {
                   <Link
                     key={item.name}
                     to={item.path}
-                    className={`inline-flex items-center px-2 py-2 text-sm font-medium rounded-md ${
+                    className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
                       location.pathname === item.path
-                        ? 'bg-primary-50 text-primary-700'
-                        : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                        ? 'bg-primary-50 text-primary-700 shadow-sm border border-primary-200'
+                        : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900 hover:shadow-sm'
                     }`}
                     title={item.name}
                   >
@@ -55,10 +55,10 @@ const Layout = ({ children }) => {
               {/* Goals Button */}
               <Link
                 to="/spending-plans"
-                className={`hidden sm:inline-flex items-center px-2 py-2 text-sm font-medium rounded-md ${
+                className={`hidden sm:inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
                   location.pathname === '/spending-plans'
-                    ? 'bg-primary-50 text-primary-700'
-                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'bg-primary-50 text-primary-700 shadow-sm border border-primary-200'
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900 hover:shadow-sm'
                 }`}
                 title="Goals"
               >
@@ -70,7 +70,7 @@ const Layout = ({ children }) => {
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:shadow-sm rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <span>👤 {user?.username}</span>
                   <span className="text-xs">{userMenuOpen ? '▲' : '▼'}</span>
@@ -82,20 +82,20 @@ const Layout = ({ children }) => {
                     <Link
                       to="/profile"
                       onClick={() => setUserMenuOpen(false)}
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-primary-700 transition-colors duration-150"
                     >
                       👤 Profile
                     </Link>
                     <Link
                       to="/settings"
                       onClick={() => setUserMenuOpen(false)}
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-primary-700 transition-colors duration-150"
                     >
                       ⚙️ Settings
                     </Link>
                     <button
                       onClick={() => { setUserMenuOpen(false); handleLogout(); }}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-red-600 transition-colors duration-150"
                     >
                       🚪 Logout
                     </button>

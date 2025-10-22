@@ -196,16 +196,16 @@ const Settings = () => {
               <button
                 type="button"
                 onClick={() => setThemeBuilderOpen(!themeBuilderOpen)}
-                className="w-full flex justify-between items-center py-2 hover:bg-gray-50 rounded transition-colors"
+                className="w-full flex justify-between items-center py-3 px-3 -mx-3 hover:bg-gray-50 rounded-lg transition-all duration-200 hover:shadow-sm border border-transparent hover:border-primary-200"
               >
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-3">
                   <span className="text-2xl">🎨</span>
                   <div className="text-left">
                     <h3 className="text-md font-medium text-gray-900">Color Theme</h3>
                     <p className="text-xs text-gray-500">Customize app colors and appearance</p>
                   </div>
                 </div>
-                <span className="text-xl text-gray-400">{themeBuilderOpen ? '▼' : '▶'}</span>
+                <span className="text-xl text-gray-400 transition-transform duration-200" style={{ transform: themeBuilderOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
               </button>
               {themeBuilderOpen && (
                 <div className="mt-4">
