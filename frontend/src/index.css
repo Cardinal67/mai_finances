@@ -90,11 +90,11 @@ body {
 
 /* Enhanced hover states for better visual feedback */
 .hover\\:bg-gray-50:hover {
-  background-color: color-mix(in srgb, var(--color-primary) 20%, var(--color-card)) !important;
+  background-color: color-mix(in srgb, var(--color-primary) 35%, var(--color-background)) !important;
 }
 
 .hover\\:bg-gray-100:hover {
-  background-color: color-mix(in srgb, var(--color-primary) 25%, var(--color-card)) !important;
+  background-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-background)) !important;
 }
 
 .hover\\:text-gray-900:hover {
