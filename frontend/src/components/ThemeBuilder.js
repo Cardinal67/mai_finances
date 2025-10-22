@@ -1,12 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
+import { useToast } from '../context/ToastContext';
 
 const ThemeBuilder = () => {
   const { theme, updateTheme, selectPreset, resetTheme, exportTheme, presets } = useTheme();
+  const { success, error } = useToast();
   const [themeName, setThemeName] = useState(theme.name);
   const [colors, setColors] = useState(theme.colors);
-  const [showImport, setShowImport] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Sync local state when global theme changes
+  useEffect(() => {
+    setThemeName(theme.name);
+    setColors(theme.colors);
+  }, [theme]);
 
   const handleColorChange = (colorKey, value) => {
     setColors({ ...colors, [colorKey]: value });
@@ -19,9 +26,10 @@ const ThemeBuilder = () => {
         name: themeName,
         colors: colors
       });
-      alert('Theme saved successfully!');
-    } catch (error) {
-      alert('Failed to save theme');
+      success('Theme saved successfully!');
+    } catch (err) {
+      console.error('Failed to save theme:', err);
+      error('Failed to save theme');
     } finally {
       setSaving(false);
     }
@@ -36,18 +44,25 @@ const ThemeBuilder = () => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         try {
           const imported = JSON.parse(event.target.result);
-          setThemeName(imported.name || 'Imported Theme');
-          setColors(imported.colors || colors);
-        } catch (error) {
-          alert('Invalid theme file');
+          if (!imported.colors) {
+            error('Invalid theme file - missing colors');
+            return;
+          }
+          await updateTheme({
+            name: imported.name || 'Imported Theme',
+            colors: imported.colors
+          });
+          success('Theme imported successfully!');
+        } catch (err) {
+          console.error('Failed to import theme:', err);
+          error('Invalid theme file');
         }
       };
       reader.readAsText(file);
     }
-    setShowImport(false);
   };
 
   const colorFields = [
