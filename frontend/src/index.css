@@ -86,17 +86,16 @@ body {
 .focus\\:ring-primary-500:focus { --tw-ring-color: var(--color-primary); }
 
 /* Enhanced hover states for better visual feedback */
-.hover\\:bg-gray-50:hover,
+.hover\\:bg-gray-50:hover {
+  background-color: color-mix(in srgb, var(--color-primary) 12%, var(--color-background)) !important;
+}
+
 .hover\\:bg-gray-100:hover {
-  background-color: color-mix(in srgb, var(--color-primary) 8%, var(--color-card)) !important;
+  background-color: color-mix(in srgb, var(--color-primary) 15%, var(--color-background)) !important;
 }
 
 .hover\\:text-gray-900:hover {
   color: var(--color-primary) !important;
-}
-
-.hover\\:bg-gray-100:hover {
-  background-color: color-mix(in srgb, var(--color-primary) 12%, var(--color-card)) !important;
 }
 
 /* Navigation and interactive elements */
