@@ -132,6 +132,9 @@ export const ThemeProvider = ({ children }) => {
 
   const loadTheme = async () => {
     try {
+      // Start with default theme as baseline
+      let themeToApply = defaultTheme;
+
       // Load balance preference from localStorage first
       const savedBalanceMasked = localStorage.getItem('balanceMasked');
       if (savedBalanceMasked !== null) {
@@ -141,14 +144,25 @@ export const ThemeProvider = ({ children }) => {
       // Try to load theme from localStorage first for immediate application
       const savedTheme = localStorage.getItem('customTheme');
       if (savedTheme) {
-        const parsedTheme = JSON.parse(savedTheme);
-        applyTheme(parsedTheme);
-        setTheme(parsedTheme);
+        try {
+          const parsedTheme = JSON.parse(savedTheme);
+          if (parsedTheme && parsedTheme.colors) {
+            themeToApply = parsedTheme;
+            console.log('Loaded theme from localStorage:', parsedTheme.name);
+          }
+        } catch (e) {
+          console.error('Failed to parse saved theme:', e);
+        }
       }
+
+      // Apply the theme immediately (either default or from localStorage)
+      applyTheme(themeToApply);
+      setTheme(themeToApply);
 
       // Only try to load from backend if user is authenticated
       const token = localStorage.getItem('token');
       if (!token) {
+        console.log('No token found, using current theme');
         setLoading(false);
         return;
       }
@@ -163,12 +177,13 @@ export const ThemeProvider = ({ children }) => {
         localStorage.setItem('balanceMasked', preferences.balance_masked.toString());
       }
       
-      // Load custom theme
+      // Load custom theme from backend
       const customTheme = preferences.custom_theme;
       if (customTheme) {
         // Parse if it's a string, otherwise use as-is
         const themeData = typeof customTheme === 'string' ? JSON.parse(customTheme) : customTheme;
         if (themeData && themeData.colors) {
+          console.log('Loaded theme from backend:', themeData.name);
           applyTheme(themeData);
           setTheme(themeData);
           localStorage.setItem('customTheme', JSON.stringify(themeData));
@@ -181,7 +196,9 @@ export const ThemeProvider = ({ children }) => {
       } else {
         console.error('Failed to load theme:', error);
       }
+      // Ensure default theme is applied on error
       applyTheme(defaultTheme);
+      setTheme(defaultTheme);
     } finally {
       setLoading(false);
     }
