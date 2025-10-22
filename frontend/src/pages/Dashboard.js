@@ -298,9 +298,9 @@ const Dashboard = () => {
                 <div className="mt-2 text-gray-900 font-semibold">
                   <BalanceDisplay amount={account.current_balance} size="lg" />
                 </div>
-                <p className="text-xs text-gray-500">
+                <div className="text-xs text-gray-500">
                   Available: <BalanceDisplay amount={account.available_balance} size="sm" className="text-gray-500" />
-                </p>
+                </div>
               </div>
             ))}
           </div>
