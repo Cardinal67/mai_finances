@@ -43,9 +43,12 @@ body {
   background-color: var(--color-card) !important;
 }
 
-.bg-gray-50,
-.bg-gray-100 {
+.bg-gray-50 {
   background-color: var(--color-background) !important;
+}
+
+.bg-gray-100 {
+  background-color: color-mix(in srgb, var(--color-textPrimary) 5%, var(--color-background)) !important;
 }
 
 .text-gray-900 {
@@ -87,11 +90,11 @@ body {
 
 /* Enhanced hover states for better visual feedback */
 .hover\\:bg-gray-50:hover {
-  background-color: color-mix(in srgb, var(--color-primary) 12%, var(--color-background)) !important;
+  background-color: color-mix(in srgb, var(--color-primary) 20%, var(--color-card)) !important;
 }
 
 .hover\\:bg-gray-100:hover {
-  background-color: color-mix(in srgb, var(--color-primary) 15%, var(--color-background)) !important;
+  background-color: color-mix(in srgb, var(--color-primary) 25%, var(--color-card)) !important;
 }
 
 .hover\\:text-gray-900:hover {
