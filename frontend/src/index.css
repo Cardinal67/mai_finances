@@ -88,13 +88,15 @@ body {
 .focus\\:border-primary-500:focus { border-color: var(--color-primary); }
 .focus\\:ring-primary-500:focus { --tw-ring-color: var(--color-primary); }
 
-/* Enhanced hover states for better visual feedback */
+/* Enhanced hover states for better visual feedback - use semi-transparent overlay */
 .hover\\:bg-gray-50:hover {
-  background-color: color-mix(in srgb, var(--color-primary) 35%, var(--color-background)) !important;
+  background-color: var(--color-card) !important;
+  box-shadow: inset 0 0 0 1000px color-mix(in srgb, var(--color-primary) 20%, transparent) !important;
 }
 
 .hover\\:bg-gray-100:hover {
-  background-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-background)) !important;
+  background-color: var(--color-card) !important;
+  box-shadow: inset 0 0 0 1000px color-mix(in srgb, var(--color-primary) 25%, transparent) !important;
 }
 
 .hover\\:text-gray-900:hover {
