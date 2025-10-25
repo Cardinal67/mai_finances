@@ -1,9 +1,9 @@
 # Mai Finances Startup Script
-# Run this script to start frontend, backend, or both
+# Run this script to start, stop, or restart frontend, backend, or both
 
 param(
     [Parameter(Position=0)]
-    [ValidateSet("frontend", "backend", "both", "")]
+    [ValidateSet("frontend", "backend", "both", "stop-frontend", "stop-backend", "stop-both", "restart-frontend", "restart-backend", "restart-both", "")]
     [string]$Mode = ""
 )
 
@@ -11,6 +11,56 @@ $ErrorActionPreference = "Continue"
 
 # Ensure Node.js is in PATH
 $env:Path += ";C:\Program Files\nodejs"
+
+# Function to stop backend
+function Stop-Backend {
+    Write-Host "`nStopping Backend Server..." -ForegroundColor Yellow
+    Write-Host "========================================" -ForegroundColor Yellow
+    
+    $stopped = $false
+    Get-Process -Name node -ErrorAction SilentlyContinue | 
+        Where-Object { $_.Path -like "*node.exe*" } |
+        ForEach-Object {
+            Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+            $stopped = $true
+        }
+    
+    if ($stopped) {
+        Write-Host "Backend stopped successfully" -ForegroundColor Green
+    } else {
+        Write-Host "No backend processes found" -ForegroundColor Gray
+    }
+    
+    return $true
+}
+
+# Function to stop frontend
+function Stop-Frontend {
+    Write-Host "`nStopping Frontend Server..." -ForegroundColor Yellow
+    Write-Host "========================================" -ForegroundColor Yellow
+    
+    $stopped = $false
+    Get-Process -Name node -ErrorAction SilentlyContinue | 
+        Where-Object { $_.CommandLine -like "*react-scripts*" -or $_.MainWindowTitle -like "*Mai Finances Frontend*" } |
+        ForEach-Object {
+            Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+            $stopped = $true
+        }
+    
+    if ($stopped) {
+        Write-Host "Frontend stopped successfully" -ForegroundColor Green
+    } else {
+        Write-Host "No frontend processes found" -ForegroundColor Gray
+    }
+    
+    return $true
+}
+
+# Function to stop both
+function Stop-Both {
+    Stop-Backend
+    Stop-Frontend
+}
 
 # Function to start backend
 function Start-Backend {
@@ -25,9 +75,7 @@ function Start-Backend {
     }
     
     # Kill any existing backend processes
-    Get-Process -Name node -ErrorAction SilentlyContinue | 
-        Where-Object { $_.Path -like "*node.exe*" } |
-        Stop-Process -Force -ErrorAction SilentlyContinue
+    Stop-Backend | Out-Null
     
     Start-Sleep -Seconds 1
     
@@ -51,9 +99,7 @@ function Start-Frontend {
     }
     
     # Kill any existing frontend processes
-    Get-Process -Name node -ErrorAction SilentlyContinue | 
-        Where-Object { $_.CommandLine -like "*react-scripts*" } |
-        Stop-Process -Force -ErrorAction SilentlyContinue
+    Stop-Frontend | Out-Null
     
     Start-Sleep -Seconds 1
     
@@ -64,6 +110,34 @@ function Start-Frontend {
     return $true
 }
 
+# Function to start both
+function Start-Both {
+    Start-Backend
+    Start-Sleep -Seconds 2
+    Start-Frontend
+}
+
+# Function to restart backend
+function Restart-Backend {
+    Stop-Backend
+    Start-Sleep -Seconds 1
+    Start-Backend
+}
+
+# Function to restart frontend
+function Restart-Frontend {
+    Stop-Frontend
+    Start-Sleep -Seconds 1
+    Start-Frontend
+}
+
+# Function to restart both
+function Restart-Both {
+    Stop-Both
+    Start-Sleep -Seconds 2
+    Start-Both
+}
+
 # Function to display menu
 function Show-Menu {
     Clear-Host
@@ -72,11 +146,21 @@ function Show-Menu {
     Write-Host "         Mai Finances Startup Menu" -ForegroundColor Cyan
     Write-Host "=================================================" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "  Select startup option:" -ForegroundColor White
-    Write-Host ""
+    Write-Host "  START OPTIONS:" -ForegroundColor White
     Write-Host "  [1] Start Frontend Only" -ForegroundColor Magenta
     Write-Host "  [2] Start Backend Only" -ForegroundColor Cyan
     Write-Host "  [3] Start Both (Recommended)" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "  STOP OPTIONS:" -ForegroundColor White
+    Write-Host "  [4] Stop Frontend" -ForegroundColor Magenta
+    Write-Host "  [5] Stop Backend" -ForegroundColor Cyan
+    Write-Host "  [6] Stop Both" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "  RESTART OPTIONS:" -ForegroundColor White
+    Write-Host "  [7] Restart Frontend" -ForegroundColor Magenta
+    Write-Host "  [8] Restart Backend" -ForegroundColor Cyan
+    Write-Host "  [9] Restart Both" -ForegroundColor Green
+    Write-Host ""
     Write-Host "  [Q] Quit" -ForegroundColor Red
     Write-Host ""
     Write-Host "=================================================" -ForegroundColor DarkGray
@@ -104,11 +188,48 @@ if ($Mode -eq "") {
                 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
             }
             "3" {
-                Start-Backend
-                Start-Sleep -Seconds 2
-                Start-Frontend
+                Start-Both
                 Write-Host ""
                 Write-Host "Both servers are starting!" -ForegroundColor Green
+                Write-Host "Access your app at: http://localhost:3000" -ForegroundColor Green
+                Write-Host ""
+                Write-Host "Press any key to return to menu..." -ForegroundColor Cyan
+                $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+            }
+            "4" {
+                Stop-Frontend
+                Write-Host ""
+                Write-Host "Press any key to return to menu..." -ForegroundColor Cyan
+                $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+            }
+            "5" {
+                Stop-Backend
+                Write-Host ""
+                Write-Host "Press any key to return to menu..." -ForegroundColor Cyan
+                $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+            }
+            "6" {
+                Stop-Both
+                Write-Host ""
+                Write-Host "Press any key to return to menu..." -ForegroundColor Cyan
+                $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+            }
+            "7" {
+                Restart-Frontend
+                Write-Host ""
+                Write-Host "Press any key to return to menu..." -ForegroundColor Cyan
+                $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+            }
+            "8" {
+                Restart-Backend
+                Write-Host ""
+                Write-Host "Press any key to return to menu..." -ForegroundColor Cyan
+                $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+            }
+            "9" {
+                Restart-Both
+                Write-Host ""
+                Write-Host "Both servers restarted!" -ForegroundColor Green
                 Write-Host "Access your app at: http://localhost:3000" -ForegroundColor Green
                 Write-Host ""
                 Write-Host "Press any key to return to menu..." -ForegroundColor Cyan
@@ -137,10 +258,30 @@ if ($Mode -eq "") {
             Write-Host "`nBackend is starting!" -ForegroundColor Green
         }
         "both" {
-            Start-Backend
-            Start-Sleep -Seconds 2
-            Start-Frontend
+            Start-Both
             Write-Host "`nBoth servers are starting!" -ForegroundColor Green
+            Write-Host "Access your app at: http://localhost:3000" -ForegroundColor Green
+        }
+        "stop-frontend" {
+            Stop-Frontend
+        }
+        "stop-backend" {
+            Stop-Backend
+        }
+        "stop-both" {
+            Stop-Both
+        }
+        "restart-frontend" {
+            Restart-Frontend
+            Write-Host "`nFrontend restarted!" -ForegroundColor Green
+        }
+        "restart-backend" {
+            Restart-Backend
+            Write-Host "`nBackend restarted!" -ForegroundColor Green
+        }
+        "restart-both" {
+            Restart-Both
+            Write-Host "`nBoth servers restarted!" -ForegroundColor Green
             Write-Host "Access your app at: http://localhost:3000" -ForegroundColor Green
         }
     }
