@@ -650,13 +650,37 @@ function New-AppBackup {
     
     # Backup type selection
     Write-Host ""
-    Write-ColorInfo "Backup Type:"
-    Write-Host "  [1] Full Backup (Everything)" -ForegroundColor Green
-    Write-Host "  [2] Partial Backup (Choose Components)" -ForegroundColor Cyan
-    Write-Host "  [3] Quick Backup (Code Only, No Database)" -ForegroundColor Yellow
+    Write-ColorTitle "=== Select Backup Type ==="
     Write-Host ""
     
-    $typeChoice = Read-Host "Choose backup type"
+    Write-Host "  [1] " -NoNewline -ForegroundColor Green
+    Write-Host "Full Backup" -NoNewline -ForegroundColor White -BackgroundColor DarkGreen
+    Write-Host " (Recommended)" -ForegroundColor Green
+    Write-Host "      • Backs up everything: Database + All code + Configuration" -ForegroundColor Gray
+    Write-Host "      • Use for: System snapshots, before major updates, disaster recovery" -ForegroundColor DarkGray
+    Write-Host "      • Size: ~20-30 MB  |  Time: ~1-2 minutes" -ForegroundColor DarkGray
+    Write-Host ""
+    
+    Write-Host "  [2] " -NoNewline -ForegroundColor Cyan
+    Write-Host "Partial Backup" -NoNewline -ForegroundColor White -BackgroundColor DarkCyan
+    Write-Host " (Custom)" -ForegroundColor Cyan
+    Write-Host "      • Choose exactly which components to backup" -ForegroundColor Gray
+    Write-Host "      • Use for: Specific component testing, selective backups, storage optimization" -ForegroundColor DarkGray
+    Write-Host "      • Size: Varies  |  Time: Depends on selection" -ForegroundColor DarkGray
+    Write-Host ""
+    
+    Write-Host "  [3] " -NoNewline -ForegroundColor Yellow
+    Write-Host "Quick Backup" -NoNewline -ForegroundColor Black -BackgroundColor Yellow
+    Write-Host " (Fast)" -ForegroundColor Yellow
+    Write-Host "      • All code (Backend, Frontend, Admin) + Configuration, NO database" -ForegroundColor Gray
+    Write-Host "      • Use for: Daily snapshots, before code changes, rapid backups" -ForegroundColor DarkGray
+    Write-Host "      • Size: ~15-20 MB  |  Time: ~30-60 seconds" -ForegroundColor DarkGray
+    Write-Host ""
+    
+    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+    Write-Host ""
+    
+    $typeChoice = Read-Host "Choose backup type [1-3]"
     
     # Get component sizes
     Write-ColorInfo "`nAnalyzing components..."
@@ -690,26 +714,58 @@ function New-AppBackup {
         "2" {
             # Partial backup - interactive selection
             Write-Host ""
-            Write-ColorInfo "Select components to backup (Y/N for each):"
+            Write-ColorTitle "=== Select Components to Backup ==="
+            Write-Host ""
+            Write-Host "Choose which components you want to include:" -ForegroundColor Gray
             Write-Host ""
             
-            $dbChoice = Read-Host "  Database ($($sizes.Database) MB)? (Y/N)"
+            Write-Host "  ▪ " -NoNewline -ForegroundColor Cyan
+            Write-Host "Database " -NoNewline -ForegroundColor White
+            Write-Host "($($sizes.Database) MB)" -ForegroundColor DarkGray
+            Write-Host "    PostgreSQL data: users, transactions, expenses, preferences" -ForegroundColor DarkGray
+            $dbChoice = Read-Host "    Include? (Y/N)"
             $components.Database = ($dbChoice -eq "Y" -or $dbChoice -eq "y")
+            Write-Host ""
             
-            $backendChoice = Read-Host "  Backend Code ($($sizes.Backend) MB)? (Y/N)"
+            Write-Host "  ▪ " -NoNewline -ForegroundColor Cyan
+            Write-Host "Backend Code " -NoNewline -ForegroundColor White
+            Write-Host "($($sizes.Backend) MB)" -ForegroundColor DarkGray
+            Write-Host "    API server, controllers, routes, business logic" -ForegroundColor DarkGray
+            $backendChoice = Read-Host "    Include? (Y/N)"
             $components.Backend = ($backendChoice -eq "Y" -or $backendChoice -eq "y")
+            Write-Host ""
             
-            $frontendChoice = Read-Host "  Frontend Code ($($sizes.Frontend) MB)? (Y/N)"
+            Write-Host "  ▪ " -NoNewline -ForegroundColor Cyan
+            Write-Host "Frontend Code " -NoNewline -ForegroundColor White
+            Write-Host "($($sizes.Frontend) MB)" -ForegroundColor DarkGray
+            Write-Host "    React app, components, pages, styles" -ForegroundColor DarkGray
+            $frontendChoice = Read-Host "    Include? (Y/N)"
             $components.Frontend = ($frontendChoice -eq "Y" -or $frontendChoice -eq "y")
+            Write-Host ""
             
-            $adminServerChoice = Read-Host "  Admin Server ($($sizes.AdminServer) MB)? (Y/N)"
+            Write-Host "  ▪ " -NoNewline -ForegroundColor Cyan
+            Write-Host "Admin Server " -NoNewline -ForegroundColor White
+            Write-Host "($($sizes.AdminServer) MB)" -ForegroundColor DarkGray
+            Write-Host "    Admin backend API, user management, server control" -ForegroundColor DarkGray
+            $adminServerChoice = Read-Host "    Include? (Y/N)"
             $components.AdminServer = ($adminServerChoice -eq "Y" -or $adminServerChoice -eq "y")
+            Write-Host ""
             
-            $adminDashboardChoice = Read-Host "  Admin Dashboard ($($sizes.AdminDashboard) MB)? (Y/N)"
+            Write-Host "  ▪ " -NoNewline -ForegroundColor Cyan
+            Write-Host "Admin Dashboard " -NoNewline -ForegroundColor White
+            Write-Host "($($sizes.AdminDashboard) MB)" -ForegroundColor DarkGray
+            Write-Host "    Admin control panel UI, monitoring interface" -ForegroundColor DarkGray
+            $adminDashboardChoice = Read-Host "    Include? (Y/N)"
             $components.AdminDashboard = ($adminDashboardChoice -eq "Y" -or $adminDashboardChoice -eq "y")
+            Write-Host ""
             
-            $configChoice = Read-Host "  Configuration Files? (Y/N)"
+            Write-Host "  ▪ " -NoNewline -ForegroundColor Cyan
+            Write-Host "Configuration Files " -NoNewline -ForegroundColor White
+            Write-Host "(<0.01 MB)" -ForegroundColor DarkGray
+            Write-Host "    .env, scripts, settings" -ForegroundColor DarkGray
+            $configChoice = Read-Host "    Include? (Y/N)"
             $components.Config = ($configChoice -eq "Y" -or $configChoice -eq "y")
+            Write-Host ""
         }
         "3" {
             # Quick backup (no database)
