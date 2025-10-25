@@ -523,25 +523,30 @@ if ($Command -eq "") {
         $choice = Read-Host "Enter your choice"
         
         switch ($choice) {
-            "1" { Start-AdminServer; Read-Host "`nPress Enter to continue" }
-            "2" { Start-AdminDashboard; Read-Host "`nPress Enter to continue" }
-            "3" { Start-AdminComplete; Read-Host "`nPress Enter to continue" }
-            "4" { Stop-AdminServer; Read-Host "`nPress Enter to continue" }
-            "5" { Stop-AdminDashboard; Read-Host "`nPress Enter to continue" }
-            "6" { Stop-AdminComplete; Read-Host "`nPress Enter to continue" }
-            "7" { Restart-AdminComplete; Read-Host "`nPress Enter to continue" }
-            "8" { Get-AdminProcessDetails; Read-Host "`nPress Enter to continue" }
-            "9" { Test-AdminConnectivity; Read-Host "`nPress Enter to continue" }
-            "10" { Show-AdminLogs; Read-Host "`nPress Enter to continue" }
-            "11" { Open-AdminDashboard; Read-Host "`nPress Enter to continue" }
-            "12" { Install-AdminDependencies; Read-Host "`nPress Enter to continue" }
-            "13" { Update-AdminDependencies; Read-Host "`nPress Enter to continue" }
-            "14" { Reset-AdminInstallation; Read-Host "`nPress Enter to continue" }
-            "15" { New-AdminDashboardBuild; Read-Host "`nPress Enter to continue" }
-            "16" { Show-AdminConfiguration; Read-Host "`nPress Enter to continue" }
-            "17" { Test-AdminRequirements; Read-Host "`nPress Enter to continue" }
+            "1" { Start-AdminServer; $choice = Read-Host "`nPress Enter to continue or enter next choice" }
+            "2" { Start-AdminDashboard; $choice = Read-Host "`nPress Enter to continue or enter next choice" }
+            "3" { Start-AdminComplete; $choice = Read-Host "`nPress Enter to continue or enter next choice" }
+            "4" { Stop-AdminServer; $choice = Read-Host "`nPress Enter to continue or enter next choice" }
+            "5" { Stop-AdminDashboard; $choice = Read-Host "`nPress Enter to continue or enter next choice" }
+            "6" { Stop-AdminComplete; $choice = Read-Host "`nPress Enter to continue or enter next choice" }
+            "7" { Restart-AdminComplete; $choice = Read-Host "`nPress Enter to continue or enter next choice" }
+            "8" { Get-AdminProcessDetails; $choice = Read-Host "`nPress Enter to continue or enter next choice" }
+            "9" { Test-AdminConnectivity; $choice = Read-Host "`nPress Enter to continue or enter next choice" }
+            "10" { Show-AdminLogs; $choice = Read-Host "`nPress Enter to continue or enter next choice" }
+            "11" { Open-AdminDashboard; $choice = Read-Host "`nPress Enter to continue or enter next choice" }
+            "12" { Install-AdminDependencies; $choice = Read-Host "`nPress Enter to continue or enter next choice" }
+            "13" { Update-AdminDependencies; $choice = Read-Host "`nPress Enter to continue or enter next choice" }
+            "14" { Reset-AdminInstallation; $choice = Read-Host "`nPress Enter to continue or enter next choice" }
+            "15" { New-AdminDashboardBuild; $choice = Read-Host "`nPress Enter to continue or enter next choice" }
+            "16" { Show-AdminConfiguration; $choice = Read-Host "`nPress Enter to continue or enter next choice" }
+            "17" { Test-AdminRequirements; $choice = Read-Host "`nPress Enter to continue or enter next choice" }
             "Q" { Write-ColorSuccess "`nGoodbye!"; exit }
             default { Write-ColorWarning "`nInvalid choice"; Start-Sleep -Seconds 1 }
+        }
+        
+        # If user entered a new choice, process it immediately without showing menu
+        if ($choice -ne "") {
+            continue
         }
     } while ($true)
 } else {
