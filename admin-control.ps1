@@ -523,25 +523,25 @@ if ($Command -eq "") {
         $choice = Read-Host "Enter your choice"
         
         switch ($choice) {
-            "1" { Start-AdminServer; Write-Host "`nPress any key..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
-            "2" { Start-AdminDashboard; Write-Host "`nPress any key..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
-            "3" { Start-AdminComplete; Write-Host "`nPress any key..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
-            "4" { Stop-AdminServer; Write-Host "`nPress any key..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
-            "5" { Stop-AdminDashboard; Write-Host "`nPress any key..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
-            "6" { Stop-AdminComplete; Write-Host "`nPress any key..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
-            "7" { Restart-AdminComplete; Write-Host "`nPress any key..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
-            "8" { Get-AdminProcessDetails; Write-Host "`nPress any key..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
-            "9" { Test-AdminConnectivity; Write-Host "`nPress any key..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
-            "10" { Show-AdminLogs; Write-Host "`nPress any key..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
-            "11" { Open-AdminDashboard; Write-Host "`nPress any key..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
-            "12" { Install-AdminDependencies; Write-Host "`nPress any key..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
-            "13" { Update-AdminDependencies; Write-Host "`nPress any key..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
-            "14" { Reset-AdminInstallation; Write-Host "`nPress any key..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
-            "15" { New-AdminDashboardBuild; Write-Host "`nPress any key..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
-            "16" { Show-AdminConfiguration; Write-Host "`nPress any key..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
-            "17" { Test-AdminRequirements; Write-Host "`nPress any key..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
-            "Q" { Write-ColorSuccess "`nGoodbye!"; Start-Sleep -Seconds 1; exit }
-            default { Write-ColorWarning "`nInvalid choice"; Start-Sleep -Seconds 2 }
+            "1" { Start-AdminServer }
+            "2" { Start-AdminDashboard }
+            "3" { Start-AdminComplete }
+            "4" { Stop-AdminServer }
+            "5" { Stop-AdminDashboard }
+            "6" { Stop-AdminComplete }
+            "7" { Restart-AdminComplete }
+            "8" { Get-AdminProcessDetails }
+            "9" { Test-AdminConnectivity }
+            "10" { Show-AdminLogs }
+            "11" { Open-AdminDashboard }
+            "12" { Install-AdminDependencies }
+            "13" { Update-AdminDependencies }
+            "14" { Reset-AdminInstallation }
+            "15" { New-AdminDashboardBuild }
+            "16" { Show-AdminConfiguration }
+            "17" { Test-AdminRequirements }
+            "Q" { Write-ColorSuccess "`nGoodbye!"; exit }
+            default { Write-ColorWarning "`nInvalid choice" }
         }
     } while ($true)
 } else {
