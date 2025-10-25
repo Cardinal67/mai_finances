@@ -10,11 +10,11 @@ $ErrorActionPreference = "Continue"
 $env:Path += ";C:\Program Files\nodejs"
 
 # Colors
-function Write-Title { Write-Host $args -ForegroundColor Cyan }
-function Write-Success { Write-Host $args -ForegroundColor Green }
-function Write-Info { Write-Host $args -ForegroundColor Blue }
-function Write-Warning { Write-Host $args -ForegroundColor Yellow }
-function Write-ErrorMessage { Write-Host $args -ForegroundColor Red }
+function Write-ColorTitle { Write-Host $args -ForegroundColor Cyan }
+function Write-ColorSuccess { Write-Host $args -ForegroundColor Green }
+function Write-ColorInfo { Write-Host $args -ForegroundColor Blue }
+function Write-ColorWarning { Write-Host $args -ForegroundColor Yellow }
+function Write-ColorError { Write-Host $args -ForegroundColor Red }
 
 # Paths
 $ScriptRoot = $PSScriptRoot
@@ -37,7 +37,7 @@ function Test-AdminDashboardRunning {
 
 # Get process details
 function Get-AdminProcessDetails {
-    Write-Title "`n=== Admin Server Processes ==="
+    Write-ColorTitle "`n=== Admin Server Processes ==="
     
     $serverProcess = Get-Process -Name node -ErrorAction SilentlyContinue | 
         Where-Object { $_.CommandLine -like "*admin-server*server.js*" }
@@ -46,37 +46,37 @@ function Get-AdminProcessDetails {
         Where-Object { $_.CommandLine -like "*admin-dashboard*react-scripts*" }
     
     if ($serverProcess) {
-        Write-Success "`nAdmin Server (Port 3002):"
+        Write-ColorSuccess "`nAdmin Server (Port 3002):"
         Write-Host "  PID: $($serverProcess.Id)"
         Write-Host "  CPU: $([math]::Round($serverProcess.CPU, 2))s"
         Write-Host "  Memory: $([math]::Round($serverProcess.WorkingSet64 / 1MB, 2)) MB"
         Write-Host "  Started: $($serverProcess.StartTime)"
     } else {
-        Write-Warning "`nAdmin Server: Not Running"
+        Write-ColorWarning "`nAdmin Server: Not Running"
     }
     
     if ($dashboardProcess) {
-        Write-Success "`nAdmin Dashboard (Port 3003):"
+        Write-ColorSuccess "`nAdmin Dashboard (Port 3003):"
         Write-Host "  PID: $($dashboardProcess.Id)"
         Write-Host "  CPU: $([math]::Round($dashboardProcess.CPU, 2))s"
         Write-Host "  Memory: $([math]::Round($dashboardProcess.WorkingSet64 / 1MB, 2)) MB"
         Write-Host "  Started: $($dashboardProcess.StartTime)"
     } else {
-        Write-Warning "`nAdmin Dashboard: Not Running"
+        Write-ColorWarning "`nAdmin Dashboard: Not Running"
     }
 }
 
 # Start admin server
 function Start-AdminServer {
-    Write-Info "`nStarting Admin Server..."
+    Write-ColorInfo "`nStarting Admin Server..."
     
     if (Test-AdminServerRunning) {
-        Write-Warning "Admin server is already running!"
+        Write-ColorWarning "Admin server is already running!"
         return
     }
     
     if (-not (Test-Path $AdminServerPath)) {
-        Write-ErrorMessage "Admin server directory not found: $AdminServerPath"
+        Write-ColorError "Admin server directory not found: $AdminServerPath"
         return
     }
     
@@ -84,21 +84,21 @@ function Start-AdminServer {
         "cd '$AdminServerPath'; Write-Host 'Admin Server (Port 3002)' -ForegroundColor Cyan; node server.js"
     
     Start-Sleep -Seconds 2
-    Write-Success "Admin server started!"
+    Write-ColorSuccess "Admin server started!"
     Write-Host "API: http://localhost:3002"
 }
 
 # Start admin dashboard
 function Start-AdminDashboard {
-    Write-Info "`nStarting Admin Dashboard..."
+    Write-ColorInfo "`nStarting Admin Dashboard..."
     
     if (Test-AdminDashboardRunning) {
-        Write-Warning "Admin dashboard is already running!"
+        Write-ColorWarning "Admin dashboard is already running!"
         return
     }
     
     if (-not (Test-Path $AdminDashboardPath)) {
-        Write-ErrorMessage "Admin dashboard directory not found: $AdminDashboardPath"
+        Write-ColorError "Admin dashboard directory not found: $AdminDashboardPath"
         return
     }
     
@@ -106,57 +106,57 @@ function Start-AdminDashboard {
         "cd '$AdminDashboardPath'; Write-Host 'Admin Dashboard (Port 3003)' -ForegroundColor Magenta; npm start"
     
     Start-Sleep -Seconds 2
-    Write-Success "Admin dashboard started!"
+    Write-ColorSuccess "Admin dashboard started!"
     Write-Host "Dashboard: http://localhost:3003"
 }
 
 # Start both
 function Start-AdminComplete {
-    Write-Title "`n=== Starting Admin Complete Stack ==="
+    Write-ColorTitle "`n=== Starting Admin Complete Stack ==="
     Start-AdminServer
     Start-Sleep -Seconds 3
     Start-AdminDashboard
-    Write-Success "`nAdmin stack is starting!"
+    Write-ColorSuccess "`nAdmin stack is starting!"
     Write-Host "Dashboard: http://localhost:3003"
     Write-Host "API: http://localhost:3002"
 }
 
 # Stop admin server
 function Stop-AdminServer {
-    Write-Info "`nStopping Admin Server..."
+    Write-ColorInfo "`nStopping Admin Server..."
     
     $processes = Get-Process -Name node -ErrorAction SilentlyContinue | 
         Where-Object { $_.CommandLine -like "*admin-server*server.js*" }
     
     if ($processes) {
         $processes | ForEach-Object { Stop-Process -Id $_.Id -Force }
-        Write-Success "Admin server stopped"
+        Write-ColorSuccess "Admin server stopped"
     } else {
-        Write-Warning "Admin server was not running"
+        Write-ColorWarning "Admin server was not running"
     }
 }
 
 # Stop admin dashboard
 function Stop-AdminDashboard {
-    Write-Info "`nStopping Admin Dashboard..."
+    Write-ColorInfo "`nStopping Admin Dashboard..."
     
     $processes = Get-Process -Name node -ErrorAction SilentlyContinue | 
         Where-Object { $_.CommandLine -like "*admin-dashboard*react-scripts*" }
     
     if ($processes) {
         $processes | ForEach-Object { Stop-Process -Id $_.Id -Force }
-        Write-Success "Admin dashboard stopped"
+        Write-ColorSuccess "Admin dashboard stopped"
     } else {
-        Write-Warning "Admin dashboard was not running"
+        Write-ColorWarning "Admin dashboard was not running"
     }
 }
 
 # Stop both
 function Stop-AdminComplete {
-    Write-Title "`n=== Stopping Admin Complete Stack ==="
+    Write-ColorTitle "`n=== Stopping Admin Complete Stack ==="
     Stop-AdminServer
     Stop-AdminDashboard
-    Write-Success "Admin stack stopped"
+    Write-ColorSuccess "Admin stack stopped"
 }
 
 # Restart
@@ -168,63 +168,63 @@ function Restart-AdminComplete {
 
 # Test connectivity
 function Test-AdminConnectivity {
-    Write-Title "`n=== Testing Admin Server Connectivity ==="
+    Write-ColorTitle "`n=== Testing Admin Server Connectivity ==="
     
-    Write-Info "`nTesting Admin Server (Port 3002)..."
+    Write-ColorInfo "`nTesting Admin Server (Port 3002)..."
     try {
         $response = Invoke-WebRequest -Uri "http://localhost:3002/health" -UseBasicParsing -TimeoutSec 5
-        Write-Success "✓ Admin Server responding"
+        Write-ColorSuccess "✓ Admin Server responding"
         Write-Host "  Status: $($response.StatusCode)"
         Write-Host "  Response: $($response.Content)"
     } catch {
-        Write-ErrorMessage "✗ Admin Server not responding"
+        Write-ColorError "✗ Admin Server not responding"
         Write-Host "  Error: $($_.Exception.Message)"
     }
     
-    Write-Info "`nTesting Admin Dashboard (Port 3003)..."
+    Write-ColorInfo "`nTesting Admin Dashboard (Port 3003)..."
     try {
         $response = Invoke-WebRequest -Uri "http://localhost:3003" -UseBasicParsing -TimeoutSec 5
-        Write-Success "✓ Admin Dashboard responding"
+        Write-ColorSuccess "✓ Admin Dashboard responding"
         Write-Host "  Status: $($response.StatusCode)"
     } catch {
-        Write-ErrorMessage "✗ Admin Dashboard not responding"
+        Write-ColorError "✗ Admin Dashboard not responding"
         Write-Host "  Error: $($_.Exception.Message)"
     }
 }
 
 # Install dependencies
 function Install-AdminDependencies {
-    Write-Title "`n=== Installing Admin Dependencies ==="
+    Write-ColorTitle "`n=== Installing Admin Dependencies ==="
     
-    Write-Info "`nInstalling Admin Server dependencies..."
+    Write-ColorInfo "`nInstalling Admin Server dependencies..."
     Set-Location $AdminServerPath
     npm install
     
-    Write-Info "`nInstalling Admin Dashboard dependencies..."
+    Write-ColorInfo "`nInstalling Admin Dashboard dependencies..."
     Set-Location $AdminDashboardPath
     npm install
     
-    Write-Success "`nDependencies installed!"
+    Write-ColorSuccess "`nDependencies installed!"
 }
 
 # Update dependencies
 function Update-AdminDependencies {
-    Write-Title "`n=== Updating Admin Dependencies ==="
+    Write-ColorTitle "`n=== Updating Admin Dependencies ==="
     
-    Write-Info "`nUpdating Admin Server dependencies..."
+    Write-ColorInfo "`nUpdating Admin Server dependencies..."
     Set-Location $AdminServerPath
     npm update
     
-    Write-Info "`nUpdating Admin Dashboard dependencies..."
+    Write-ColorInfo "`nUpdating Admin Dashboard dependencies..."
     Set-Location $AdminDashboardPath
     npm update
     
-    Write-Success "`nDependencies updated!"
+    Write-ColorSuccess "`nDependencies updated!"
 }
 
 # View logs
 function Show-AdminLogs {
-    Write-Title "`n=== Admin Server Logs ==="
+    Write-ColorTitle "`n=== Admin Server Logs ==="
     
     $logPath = Join-Path $AdminServerPath "logs"
     
@@ -233,95 +233,95 @@ function Show-AdminLogs {
             Sort-Object LastWriteTime -Descending | 
             Select-Object -First 5 |
             ForEach-Object {
-                Write-Info "`n--- $($_.Name) ---"
+                Write-ColorInfo "`n--- $($_.Name) ---"
                 Get-Content $_.FullName -Tail 50
             }
     } else {
-        Write-Warning "No log files found"
+        Write-ColorWarning "No log files found"
         Write-Host "Logs are displayed in the terminal window"
     }
 }
 
 # Check system requirements
 function Test-AdminRequirements {
-    Write-Title "`n=== Checking System Requirements ==="
+    Write-ColorTitle "`n=== Checking System Requirements ==="
     
     # Node.js
-    Write-Info "`nChecking Node.js..."
+    Write-ColorInfo "`nChecking Node.js..."
     try {
         $nodeVersion = node --version
-        Write-Success "✓ Node.js: $nodeVersion"
+        Write-ColorSuccess "✓ Node.js: $nodeVersion"
     } catch {
-        Write-ErrorMessage "✗ Node.js not found"
+        Write-ColorError "✗ Node.js not found"
     }
     
     # NPM
-    Write-Info "`nChecking NPM..."
+    Write-ColorInfo "`nChecking NPM..."
     try {
         $npmVersion = npm --version
-        Write-Success "✓ NPM: $npmVersion"
+        Write-ColorSuccess "✓ NPM: $npmVersion"
     } catch {
-        Write-ErrorMessage "✗ NPM not found"
+        Write-ColorError "✗ NPM not found"
     }
     
     # Ports
-    Write-Info "`nChecking port availability..."
+    Write-ColorInfo "`nChecking port availability..."
     $ports = @(3002, 3003)
     foreach ($port in $ports) {
         $connection = Test-NetConnection -ComputerName localhost -Port $port -WarningAction SilentlyContinue -InformationLevel Quiet
         if ($connection) {
-            Write-Warning "✗ Port $port is in use"
+            Write-ColorWarning "✗ Port $port is in use"
         } else {
-            Write-Success "✓ Port $port is available"
+            Write-ColorSuccess "✓ Port $port is available"
         }
     }
     
     # Directories
-    Write-Info "`nChecking directories..."
+    Write-ColorInfo "`nChecking directories..."
     if (Test-Path $AdminServerPath) {
-        Write-Success "✓ Admin server directory exists"
+        Write-ColorSuccess "✓ Admin server directory exists"
     } else {
-        Write-ErrorMessage "✗ Admin server directory not found"
+        Write-ColorError "✗ Admin server directory not found"
     }
     
     if (Test-Path $AdminDashboardPath) {
-        Write-Success "✓ Admin dashboard directory exists"
+        Write-ColorSuccess "✓ Admin dashboard directory exists"
     } else {
-        Write-ErrorMessage "✗ Admin dashboard directory not found"
+        Write-ColorError "✗ Admin dashboard directory not found"
     }
 }
 
 # Open in browser
 function Open-AdminDashboard {
-    Write-Info "`nOpening admin dashboard in browser..."
+    Write-ColorInfo "`nOpening admin dashboard in browser..."
     Start-Process "http://localhost:3003"
 }
 
 # Build dashboard for production
 function New-AdminDashboardBuild {
-    Write-Title "`n=== Building Admin Dashboard for Production ==="
+    Write-ColorTitle "`n=== Building Admin Dashboard for Production ==="
     
     Set-Location $AdminDashboardPath
-    Write-Info "`nBuilding..."
+    Write-ColorInfo "`nBuilding..."
     npm run build
     
-    Write-Success "`nBuild complete!"
+    Write-ColorSuccess "`nBuild complete!"
     Write-Host "Build output: $AdminDashboardPath\build"
 }
 
 # Clean install
 function Reset-AdminInstallation {
-    Write-Title "`n=== Clean Admin Installation ==="
-    Write-Warning "`nThis will delete node_modules and reinstall everything"
+    Write-ColorTitle "`n=== Clean Admin Installation ==="
+    Write-ColorWarning "`nThis will delete node_modules and reinstall everything"
     
     $confirm = Read-Host "Continue? (y/n)"
     if ($confirm -ne "y") {
-        Write-Info "Cancelled"
+        Write-ColorInfo "Cancelled"
         return
     }
     
     # Server
-    Write-Info "`nCleaning admin server..."
+    Write-ColorInfo "`nCleaning admin server..."
     Set-Location $AdminServerPath
     if (Test-Path "node_modules") {
         Remove-Item -Recurse -Force "node_modules"
@@ -332,7 +332,7 @@ function Reset-AdminInstallation {
     npm install
     
     # Dashboard
-    Write-Info "`nCleaning admin dashboard..."
+    Write-ColorInfo "`nCleaning admin dashboard..."
     Set-Location $AdminDashboardPath
     if (Test-Path "node_modules") {
         Remove-Item -Recurse -Force "node_modules"
@@ -342,24 +342,24 @@ function Reset-AdminInstallation {
     }
     npm install
     
-    Write-Success "`nClean installation complete!"
+    Write-ColorSuccess "`nClean installation complete!"
 }
 
 # Show configuration
 function Show-AdminConfiguration {
-    Write-Title "`n=== Admin Configuration ==="
+    Write-ColorTitle "`n=== Admin Configuration ==="
     
-    Write-Info "`nServer Configuration:"
+    Write-ColorInfo "`nServer Configuration:"
     Write-Host "  Path: $AdminServerPath"
     Write-Host "  Port: 3002"
     Write-Host "  API: http://localhost:3002/api/admin"
     
-    Write-Info "`nDashboard Configuration:"
+    Write-ColorInfo "`nDashboard Configuration:"
     Write-Host "  Path: $AdminDashboardPath"
     Write-Host "  Port: 3003"
     Write-Host "  URL: http://localhost:3003"
     
-    Write-Info "`nEnvironment:"
+    Write-ColorInfo "`nEnvironment:"
     $nodeEnv = if ($env:NODE_ENV) { $env:NODE_ENV } else { 'production' }
     $dbUrl = if ($env:DATABASE_URL) { $env:DATABASE_URL } else { 'not set' }
     Write-Host "  NODE_ENV: $nodeEnv"
@@ -370,11 +370,11 @@ function Show-AdminConfiguration {
 function Show-AdminMenu {
     Clear-Host
     Write-Host ""
-    Write-Title "╔════════════════════════════════════════════════════════╗"
-    Write-Title "║                                                        ║"
-    Write-Title "║     🎛️  Admin Server Control Panel  🎛️                ║"
-    Write-Title "║                                                        ║"
-    Write-Title "╚════════════════════════════════════════════════════════╝"
+    Write-ColorTitle "╔════════════════════════════════════════════════════════╗"
+    Write-ColorTitle "║                                                        ║"
+    Write-ColorTitle "║     🎛️  Admin Server Control Panel  🎛️                ║"
+    Write-ColorTitle "║                                                        ║"
+    Write-ColorTitle "╚════════════════════════════════════════════════════════╝"
     Write-Host ""
     
     Write-Host "  CONTROL OPTIONS:" -ForegroundColor White
@@ -432,8 +432,8 @@ if ($Command -eq "") {
             "15" { New-AdminDashboardBuild; Write-Host "`nPress any key..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
             "16" { Show-AdminConfiguration; Write-Host "`nPress any key..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
             "17" { Test-AdminRequirements; Write-Host "`nPress any key..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
-            "Q" { Write-Success "`nGoodbye!"; Start-Sleep -Seconds 1; exit }
-            default { Write-Warning "`nInvalid choice"; Start-Sleep -Seconds 2 }
+            "Q" { Write-ColorSuccess "`nGoodbye!"; Start-Sleep -Seconds 1; exit }
+            default { Write-ColorWarning "`nInvalid choice"; Start-Sleep -Seconds 2 }
         }
     } while ($true)
 } else {
@@ -457,7 +457,7 @@ if ($Command -eq "") {
         "config" { Show-AdminConfiguration }
         "check" { Test-AdminRequirements }
         default { 
-            Write-ErrorMessage "Unknown command: $Command"
+            Write-ColorError "Unknown command: $Command"
             Write-Host "`nAvailable commands:"
             Write-Host "  start, stop, restart, status, test, logs, open"
             Write-Host "  install, update, reset, build, config, check"
