@@ -66,17 +66,27 @@ function Test-AdminDashboardRunning {
     return $null -ne $dashboardProcess
 }
 
+# Get PID from port
+function Get-PidFromPort {
+    param([int]$Port)
+    
+    $connection = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
+    if ($connection) {
+        return $connection.OwningProcess
+    }
+    return $null
+}
+
 # Get process details
 function Get-AdminProcessDetails {
     Write-ColorTitle "`n=== Admin Server Processes ==="
     
-    $serverProcess = Get-Process -Name node -ErrorAction SilentlyContinue | 
-        Where-Object { $_.CommandLine -like "*admin-server*server.js*" } |
-        Select-Object -First 1
+    # Try port-based detection first (more reliable)
+    $serverPid = Get-PidFromPort -Port 3002
+    $serverProcess = if ($serverPid) { Get-Process -Id $serverPid -ErrorAction SilentlyContinue } else { $null }
     
-    $dashboardProcess = Get-Process -Name node -ErrorAction SilentlyContinue | 
-        Where-Object { $_.CommandLine -like "*admin-dashboard*react-scripts*" } |
-        Select-Object -First 1
+    $dashboardPid = Get-PidFromPort -Port 3003
+    $dashboardProcess = if ($dashboardPid) { Get-Process -Id $dashboardPid -ErrorAction SilentlyContinue } else { $null }
     
     if ($serverProcess) {
         Write-ColorSuccess "`nAdmin Server (Port 3002):"
