@@ -28,16 +28,16 @@ async function register(req, res) {
             );
         }
 
-        // Check if username already exists
+        // Check if username already exists (case-insensitive)
         const userCheck = await db.query(
-            'SELECT id, username, email FROM users WHERE username = $1 OR email = $2',
+            'SELECT id, username, email FROM users WHERE LOWER(username) = LOWER($1) OR LOWER(email) = LOWER($2)',
             [username, email]
         );
 
         if (userCheck.rows.length > 0) {
             const existingUser = userCheck.rows[0];
-            const isDuplicateUsername = existingUser.username === username;
-            const isDuplicateEmail = existingUser.email === email;
+            const isDuplicateUsername = existingUser.username.toLowerCase() === username.toLowerCase();
+            const isDuplicateEmail = existingUser.email.toLowerCase() === email.toLowerCase();
 
             console.error(`[AUTH] User already exists - Username: ${isDuplicateUsername}, Email: ${isDuplicateEmail}`);
             
@@ -133,9 +133,9 @@ async function login(req, res) {
     const { username, password } = req.body;
 
     try {
-        // Find user by username or email
+        // Find user by username or email (case-insensitive)
         const result = await db.query(
-            'SELECT id, username, email, password_hash FROM USERS WHERE username = $1 OR email = $1',
+            'SELECT id, username, email, password_hash FROM USERS WHERE LOWER(username) = LOWER($1) OR LOWER(email) = LOWER($1)',
             [username]
         );
 
