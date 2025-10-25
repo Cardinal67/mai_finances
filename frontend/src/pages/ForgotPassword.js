@@ -154,26 +154,6 @@ const ForgotPassword = () => {
               </Link>
             </div>
           </form>
-
-          <div className="rounded-md bg-yellow-50 p-4 border border-yellow-200 mt-4">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <span className="text-xl">ℹ️</span>
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-yellow-800">
-                  Alternative: Command-Line Reset
-                </h3>
-                <div className="mt-2 text-sm text-yellow-700">
-                  <p>If you haven't set up security questions, use:</p>
-                  <code className="block mt-2 bg-yellow-100 p-2 rounded text-xs">
-                    cd backend<br />
-                    node reset-user-password.js [username] [new-password]
-                  </code>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     );
