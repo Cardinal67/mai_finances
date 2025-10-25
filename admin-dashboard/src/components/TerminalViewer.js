@@ -1,5 +1,5 @@
 // Terminal Viewer Component
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import api from '../services/api';
 import socketService from '../services/socket';
 
@@ -8,6 +8,21 @@ function TerminalViewer() {
     const [logs, setLogs] = useState([]);
     const [autoScroll, setAutoScroll] = useState(true);
     const terminalRef = useRef(null);
+
+    const handleNewLog = useCallback((data) => {
+        if (data.server === activeServer) {
+            setLogs(prev => [...prev, data.log]);
+        }
+    }, [activeServer]);
+
+    const loadLogs = useCallback(async () => {
+        try {
+            const serverLogs = await api.getServerLogs(activeServer, 100);
+            setLogs(serverLogs);
+        } catch (error) {
+            console.error('Failed to load logs:', error);
+        }
+    }, [activeServer]);
 
     useEffect(() => {
         loadLogs();
@@ -18,28 +33,13 @@ function TerminalViewer() {
         return () => {
             socketService.off('server-log', handleNewLog);
         };
-    }, [activeServer]);
+    }, [activeServer, loadLogs, handleNewLog]);
 
     useEffect(() => {
         if (autoScroll && terminalRef.current) {
             terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
         }
     }, [logs, autoScroll]);
-
-    const handleNewLog = (data) => {
-        if (data.server === activeServer) {
-            setLogs(prev => [...prev, data.log]);
-        }
-    };
-
-    const loadLogs = async () => {
-        try {
-            const serverLogs = await api.getServerLogs(activeServer, 100);
-            setLogs(serverLogs);
-        } catch (error) {
-            console.error('Failed to load logs:', error);
-        }
-    };
 
     const clearLogs = async () => {
         if (window.confirm(`Clear all ${activeServer} logs?`)) {

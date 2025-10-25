@@ -4,16 +4,7 @@ import api from '../services/api';
 import socketService from '../services/socket';
 
 function ServerCard({ name, status, port, onStart, onStop, onRestart, loading }) {
-    const [uptime, setUptime] = useState(0);
-
-    useEffect(() => {
-        if (status.status === 'running' && status.uptime) {
-            const interval = setInterval(() => {
-                setUptime(Date.now() - (Date.now() - status.uptime));
-            }, 1000);
-            return () => clearInterval(interval);
-        }
-    }, [status]);
+    // Uptime is calculated directly from status.uptime, no need for state
 
     const formatUptime = (ms) => {
         const seconds = Math.floor(ms / 1000);
