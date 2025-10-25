@@ -523,25 +523,25 @@ if ($Command -eq "") {
         $choice = Read-Host "Enter your choice"
         
         switch ($choice) {
-            "1" { Start-AdminServer }
-            "2" { Start-AdminDashboard }
-            "3" { Start-AdminComplete }
-            "4" { Stop-AdminServer }
-            "5" { Stop-AdminDashboard }
-            "6" { Stop-AdminComplete }
-            "7" { Restart-AdminComplete }
-            "8" { Get-AdminProcessDetails }
-            "9" { Test-AdminConnectivity }
-            "10" { Show-AdminLogs }
-            "11" { Open-AdminDashboard }
-            "12" { Install-AdminDependencies }
-            "13" { Update-AdminDependencies }
-            "14" { Reset-AdminInstallation }
-            "15" { New-AdminDashboardBuild }
-            "16" { Show-AdminConfiguration }
-            "17" { Test-AdminRequirements }
+            "1" { Start-AdminServer; Read-Host "`nPress Enter to continue" }
+            "2" { Start-AdminDashboard; Read-Host "`nPress Enter to continue" }
+            "3" { Start-AdminComplete; Read-Host "`nPress Enter to continue" }
+            "4" { Stop-AdminServer; Read-Host "`nPress Enter to continue" }
+            "5" { Stop-AdminDashboard; Read-Host "`nPress Enter to continue" }
+            "6" { Stop-AdminComplete; Read-Host "`nPress Enter to continue" }
+            "7" { Restart-AdminComplete; Read-Host "`nPress Enter to continue" }
+            "8" { Get-AdminProcessDetails; Read-Host "`nPress Enter to continue" }
+            "9" { Test-AdminConnectivity; Read-Host "`nPress Enter to continue" }
+            "10" { Show-AdminLogs; Read-Host "`nPress Enter to continue" }
+            "11" { Open-AdminDashboard; Read-Host "`nPress Enter to continue" }
+            "12" { Install-AdminDependencies; Read-Host "`nPress Enter to continue" }
+            "13" { Update-AdminDependencies; Read-Host "`nPress Enter to continue" }
+            "14" { Reset-AdminInstallation; Read-Host "`nPress Enter to continue" }
+            "15" { New-AdminDashboardBuild; Read-Host "`nPress Enter to continue" }
+            "16" { Show-AdminConfiguration; Read-Host "`nPress Enter to continue" }
+            "17" { Test-AdminRequirements; Read-Host "`nPress Enter to continue" }
             "Q" { Write-ColorSuccess "`nGoodbye!"; exit }
-            default { Write-ColorWarning "`nInvalid choice" }
+            default { Write-ColorWarning "`nInvalid choice"; Start-Sleep -Seconds 1 }
         }
     } while ($true)
 } else {
