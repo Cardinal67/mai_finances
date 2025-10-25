@@ -180,15 +180,17 @@ function Stop-AdminServer {
     }
     
     # Also try by process matching (backup)
-    $processes = Get-Process -Name node -ErrorAction SilentlyContinue | 
-        Where-Object { $_.CommandLine -like "*admin-server*server.js*" }
-    
-    if ($processes) {
-        $processes | ForEach-Object { 
-            Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+    if (-not $stopped) {
+        $processes = Get-Process -Name node -ErrorAction SilentlyContinue | 
+            Where-Object { $_.CommandLine -like "*admin-server*server.js*" }
+        
+        if ($processes) {
+            $processes | ForEach-Object { 
+                Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+            }
             $stopped = $true
+            Write-ColorSuccess "Admin server stopped (by process)"
         }
-        Write-ColorSuccess "Admin server stopped (by process)"
     }
     
     if (-not $stopped) {
@@ -212,15 +214,17 @@ function Stop-AdminDashboard {
     }
     
     # Also try by process matching (backup)
-    $processes = Get-Process -Name node -ErrorAction SilentlyContinue | 
-        Where-Object { $_.CommandLine -like "*admin-dashboard*react-scripts*" }
-    
-    if ($processes) {
-        $processes | ForEach-Object { 
-            Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+    if (-not $stopped) {
+        $processes = Get-Process -Name node -ErrorAction SilentlyContinue | 
+            Where-Object { $_.CommandLine -like "*admin-dashboard*react-scripts*" }
+        
+        if ($processes) {
+            $processes | ForEach-Object { 
+                Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+            }
             $stopped = $true
+            Write-ColorSuccess "Admin dashboard stopped (by process)"
         }
-        Write-ColorSuccess "Admin dashboard stopped (by process)"
     }
     
     if (-not $stopped) {
