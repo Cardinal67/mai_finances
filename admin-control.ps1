@@ -306,17 +306,48 @@ function Show-AdminLogs {
     $logPath = Join-Path $AdminServerPath "logs"
     
     if (Test-Path $logPath) {
-        Get-ChildItem $logPath -Filter "*.log" | 
-            Sort-Object LastWriteTime -Descending | 
-            Select-Object -First 5 |
-            ForEach-Object {
-                Write-ColorInfo "`n--- $($_.Name) ---"
-                Get-Content $_.FullName -Tail 50
-            }
-    } else {
-        Write-ColorWarning "No log files found"
-        Write-Host "Logs are displayed in the terminal window"
+        $logFiles = Get-ChildItem $logPath -Filter "*.log" -ErrorAction SilentlyContinue
+        if ($logFiles) {
+            $logFiles | 
+                Sort-Object LastWriteTime -Descending | 
+                Select-Object -First 5 |
+                ForEach-Object {
+                    Write-ColorInfo "`n--- $($_.Name) ---"
+                    Get-Content $_.FullName -Tail 50
+                }
+            return
+        }
     }
+    
+    # No log files - servers log to console
+    Write-ColorInfo "`nℹ️  Log Output Location:"
+    Write-Host ""
+    
+    $serverPid = Get-PidFromPort -Port 3002
+    $dashboardPid = Get-PidFromPort -Port 3003
+    
+    if ($serverPid) {
+        Write-ColorSuccess "✓ Admin Server (Port 3002, PID $serverPid):"
+        Write-Host "  Logs are displayed in the PowerShell window where it was started"
+        Write-Host "  Look for the window titled: 'Admin Server (Port 3002)'"
+    } else {
+        Write-ColorWarning "✗ Admin Server is not running"
+    }
+    
+    Write-Host ""
+    
+    if ($dashboardPid) {
+        Write-ColorSuccess "✓ Admin Dashboard (Port 3003, PID $dashboardPid):"
+        Write-Host "  Logs are displayed in the PowerShell window where it was started"
+        Write-Host "  Look for the window titled: 'Admin Dashboard (Port 3003)'"
+    } else {
+        Write-ColorWarning "✗ Admin Dashboard is not running"
+    }
+    
+    Write-Host ""
+    Write-ColorInfo "💡 Tip:"
+    Write-Host "  The servers output logs in real-time to their console windows"
+    Write-Host "  To see more detail, check those terminal windows"
 }
 
 # Check system requirements
