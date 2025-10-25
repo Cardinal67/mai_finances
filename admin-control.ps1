@@ -9,6 +9,23 @@ param(
 $ErrorActionPreference = "Continue"
 $env:Path += ";C:\Program Files\nodejs"
 
+# Check PowerShell version
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    Write-Host ""
+    Write-Host "ERROR: This script requires PowerShell 7 or higher!" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "You are currently using PowerShell $($PSVersionTable.PSVersion)" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Solutions:" -ForegroundColor Cyan
+    Write-Host "  1. Use the batch file: .\admin-control.bat" -ForegroundColor Green
+    Write-Host "  2. Switch to PowerShell 7: pwsh" -ForegroundColor Green
+    Write-Host "  3. Install PowerShell 7: winget install Microsoft.PowerShell" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Press any key to exit..."
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    exit 1
+}
+
 # Colors
 function Write-ColorTitle { Write-Host $args -ForegroundColor Cyan }
 function Write-ColorSuccess { Write-Host $args -ForegroundColor Green }
@@ -96,7 +113,7 @@ function Start-AdminServer {
         return
     }
     
-    Start-Process powershell -ArgumentList "-NoExit", "-Command", 
+    Start-Process pwsh -ArgumentList "-NoExit", "-Command", 
         "cd '$AdminServerPath'; Write-Host 'Admin Server (Port 3002)' -ForegroundColor Cyan; node server.js"
     
     Start-Sleep -Seconds 2
@@ -118,7 +135,7 @@ function Start-AdminDashboard {
         return
     }
     
-    Start-Process powershell -ArgumentList "-NoExit", "-Command", 
+    Start-Process pwsh -ArgumentList "-NoExit", "-Command", 
         "cd '$AdminDashboardPath'; Write-Host 'Admin Dashboard (Port 3003)' -ForegroundColor Magenta; npm start"
     
     Start-Sleep -Seconds 2
