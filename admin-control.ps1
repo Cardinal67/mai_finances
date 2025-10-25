@@ -23,6 +23,13 @@ $AdminDashboardPath = Join-Path $ScriptRoot "admin-dashboard"
 
 # Check if admin server is running
 function Test-AdminServerRunning {
+    # Check by port (more reliable)
+    $connection = Get-NetTCPConnection -LocalPort 3002 -State Listen -ErrorAction SilentlyContinue
+    if ($connection) {
+        return $true
+    }
+    
+    # Fallback: Check by process
     $serverProcess = Get-Process -Name node -ErrorAction SilentlyContinue | 
         Where-Object { $_.CommandLine -like "*admin-server*server.js*" }
     return $null -ne $serverProcess
@@ -30,6 +37,13 @@ function Test-AdminServerRunning {
 
 # Check if admin dashboard is running
 function Test-AdminDashboardRunning {
+    # Check by port (more reliable)
+    $connection = Get-NetTCPConnection -LocalPort 3003 -State Listen -ErrorAction SilentlyContinue
+    if ($connection) {
+        return $true
+    }
+    
+    # Fallback: Check by process
     $dashboardProcess = Get-Process -Name node -ErrorAction SilentlyContinue | 
         Where-Object { $_.CommandLine -like "*admin-dashboard*react-scripts*" }
     return $null -ne $dashboardProcess
@@ -125,13 +139,30 @@ function Start-AdminComplete {
 function Stop-AdminServer {
     Write-ColorInfo "`nStopping Admin Server..."
     
+    $stopped = $false
+    
+    # Try to stop by port (most reliable)
+    $connection = Get-NetTCPConnection -LocalPort 3002 -State Listen -ErrorAction SilentlyContinue
+    if ($connection) {
+        $processId = $connection.OwningProcess
+        Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
+        $stopped = $true
+        Write-ColorSuccess "Admin server stopped (Port 3002)"
+    }
+    
+    # Also try by process matching (backup)
     $processes = Get-Process -Name node -ErrorAction SilentlyContinue | 
         Where-Object { $_.CommandLine -like "*admin-server*server.js*" }
     
     if ($processes) {
-        $processes | ForEach-Object { Stop-Process -Id $_.Id -Force }
-        Write-ColorSuccess "Admin server stopped"
-    } else {
+        $processes | ForEach-Object { 
+            Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+            $stopped = $true
+        }
+        Write-ColorSuccess "Admin server stopped (by process)"
+    }
+    
+    if (-not $stopped) {
         Write-ColorWarning "Admin server was not running"
     }
 }
@@ -140,13 +171,30 @@ function Stop-AdminServer {
 function Stop-AdminDashboard {
     Write-ColorInfo "`nStopping Admin Dashboard..."
     
+    $stopped = $false
+    
+    # Try to stop by port (most reliable)
+    $connection = Get-NetTCPConnection -LocalPort 3003 -State Listen -ErrorAction SilentlyContinue
+    if ($connection) {
+        $processId = $connection.OwningProcess
+        Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
+        $stopped = $true
+        Write-ColorSuccess "Admin dashboard stopped (Port 3003)"
+    }
+    
+    # Also try by process matching (backup)
     $processes = Get-Process -Name node -ErrorAction SilentlyContinue | 
         Where-Object { $_.CommandLine -like "*admin-dashboard*react-scripts*" }
     
     if ($processes) {
-        $processes | ForEach-Object { Stop-Process -Id $_.Id -Force }
-        Write-ColorSuccess "Admin dashboard stopped"
-    } else {
+        $processes | ForEach-Object { 
+            Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+            $stopped = $true
+        }
+        Write-ColorSuccess "Admin dashboard stopped (by process)"
+    }
+    
+    if (-not $stopped) {
         Write-ColorWarning "Admin dashboard was not running"
     }
 }
