@@ -54,10 +54,12 @@ function Get-AdminProcessDetails {
     Write-ColorTitle "`n=== Admin Server Processes ==="
     
     $serverProcess = Get-Process -Name node -ErrorAction SilentlyContinue | 
-        Where-Object { $_.CommandLine -like "*admin-server*server.js*" }
+        Where-Object { $_.CommandLine -like "*admin-server*server.js*" } |
+        Select-Object -First 1
     
     $dashboardProcess = Get-Process -Name node -ErrorAction SilentlyContinue | 
-        Where-Object { $_.CommandLine -like "*admin-dashboard*react-scripts*" }
+        Where-Object { $_.CommandLine -like "*admin-dashboard*react-scripts*" } |
+        Select-Object -First 1
     
     if ($serverProcess) {
         Write-ColorSuccess "`nAdmin Server (Port 3002):"
