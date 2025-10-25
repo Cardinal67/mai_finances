@@ -125,15 +125,11 @@ function Start-AdminComplete {
 function Stop-AdminServer {
     Write-Info "`nStopping Admin Server..."
     
-    $stopped = $false
-    Get-Process -Name node -ErrorAction SilentlyContinue | 
-        Where-Object { $_.CommandLine -like "*admin-server*server.js*" } |
-        ForEach-Object {
-            Stop-Process -Id $_.Id -Force
-            $stopped = $true
-        }
+    $processes = Get-Process -Name node -ErrorAction SilentlyContinue | 
+        Where-Object { $_.CommandLine -like "*admin-server*server.js*" }
     
-    if ($stopped) {
+    if ($processes) {
+        $processes | ForEach-Object { Stop-Process -Id $_.Id -Force }
         Write-Success "Admin server stopped"
     } else {
         Write-Warning "Admin server was not running"
@@ -144,15 +140,11 @@ function Stop-AdminServer {
 function Stop-AdminDashboard {
     Write-Info "`nStopping Admin Dashboard..."
     
-    $stopped = $false
-    Get-Process -Name node -ErrorAction SilentlyContinue | 
-        Where-Object { $_.CommandLine -like "*admin-dashboard*react-scripts*" } |
-        ForEach-Object {
-            Stop-Process -Id $_.Id -Force
-            $stopped = $true
-        }
+    $processes = Get-Process -Name node -ErrorAction SilentlyContinue | 
+        Where-Object { $_.CommandLine -like "*admin-dashboard*react-scripts*" }
     
-    if ($stopped) {
+    if ($processes) {
+        $processes | ForEach-Object { Stop-Process -Id $_.Id -Force }
         Write-Success "Admin dashboard stopped"
     } else {
         Write-Warning "Admin dashboard was not running"
@@ -205,11 +197,11 @@ function Install-AdminDependencies {
     Write-Title "`n=== Installing Admin Dependencies ==="
     
     Write-Info "`nInstalling Admin Server dependencies..."
-    cd $AdminServerPath
+    Set-Location $AdminServerPath
     npm install
     
     Write-Info "`nInstalling Admin Dashboard dependencies..."
-    cd $AdminDashboardPath
+    Set-Location $AdminDashboardPath
     npm install
     
     Write-Success "`nDependencies installed!"
@@ -220,11 +212,11 @@ function Update-AdminDependencies {
     Write-Title "`n=== Updating Admin Dependencies ==="
     
     Write-Info "`nUpdating Admin Server dependencies..."
-    cd $AdminServerPath
+    Set-Location $AdminServerPath
     npm update
     
     Write-Info "`nUpdating Admin Dashboard dependencies..."
-    cd $AdminDashboardPath
+    Set-Location $AdminDashboardPath
     npm update
     
     Write-Success "`nDependencies updated!"
@@ -306,10 +298,10 @@ function Open-AdminDashboard {
 }
 
 # Build dashboard for production
-function Build-AdminDashboard {
+function New-AdminDashboardBuild {
     Write-Title "`n=== Building Admin Dashboard for Production ==="
     
-    cd $AdminDashboardPath
+    Set-Location $AdminDashboardPath
     Write-Info "`nBuilding..."
     npm run build
     
@@ -330,7 +322,7 @@ function Reset-AdminInstallation {
     
     # Server
     Write-Info "`nCleaning admin server..."
-    cd $AdminServerPath
+    Set-Location $AdminServerPath
     if (Test-Path "node_modules") {
         Remove-Item -Recurse -Force "node_modules"
     }
@@ -341,7 +333,7 @@ function Reset-AdminInstallation {
     
     # Dashboard
     Write-Info "`nCleaning admin dashboard..."
-    cd $AdminDashboardPath
+    Set-Location $AdminDashboardPath
     if (Test-Path "node_modules") {
         Remove-Item -Recurse -Force "node_modules"
     }
@@ -437,7 +429,7 @@ if ($Command -eq "") {
             "12" { Install-AdminDependencies; Write-Host "`nPress any key..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
             "13" { Update-AdminDependencies; Write-Host "`nPress any key..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
             "14" { Reset-AdminInstallation; Write-Host "`nPress any key..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
-            "15" { Build-AdminDashboard; Write-Host "`nPress any key..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
+            "15" { New-AdminDashboardBuild; Write-Host "`nPress any key..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
             "16" { Show-AdminConfiguration; Write-Host "`nPress any key..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
             "17" { Test-AdminRequirements; Write-Host "`nPress any key..."; $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
             "Q" { Write-Success "`nGoodbye!"; Start-Sleep -Seconds 1; exit }
@@ -461,7 +453,7 @@ if ($Command -eq "") {
         "install" { Install-AdminDependencies }
         "update" { Update-AdminDependencies }
         "reset" { Reset-AdminInstallation }
-        "build" { Build-AdminDashboard }
+        "build" { New-AdminDashboardBuild }
         "config" { Show-AdminConfiguration }
         "check" { Test-AdminRequirements }
         default { 
