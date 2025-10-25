@@ -14,7 +14,7 @@ function Write-Title { Write-Host $args -ForegroundColor Cyan }
 function Write-Success { Write-Host $args -ForegroundColor Green }
 function Write-Info { Write-Host $args -ForegroundColor Blue }
 function Write-Warning { Write-Host $args -ForegroundColor Yellow }
-function Write-Error { Write-Host $args -ForegroundColor Red }
+function Write-ErrorMessage { Write-Host $args -ForegroundColor Red }
 
 # Paths
 $ScriptRoot = $PSScriptRoot
@@ -76,7 +76,7 @@ function Start-AdminServer {
     }
     
     if (-not (Test-Path $AdminServerPath)) {
-        Write-Error "Admin server directory not found: $AdminServerPath"
+        Write-ErrorMessage "Admin server directory not found: $AdminServerPath"
         return
     }
     
@@ -98,7 +98,7 @@ function Start-AdminDashboard {
     }
     
     if (-not (Test-Path $AdminDashboardPath)) {
-        Write-Error "Admin dashboard directory not found: $AdminDashboardPath"
+        Write-ErrorMessage "Admin dashboard directory not found: $AdminDashboardPath"
         return
     }
     
@@ -177,7 +177,7 @@ function Test-AdminConnectivity {
         Write-Host "  Status: $($response.StatusCode)"
         Write-Host "  Response: $($response.Content)"
     } catch {
-        Write-Error "✗ Admin Server not responding"
+        Write-ErrorMessage "✗ Admin Server not responding"
         Write-Host "  Error: $($_.Exception.Message)"
     }
     
@@ -187,7 +187,7 @@ function Test-AdminConnectivity {
         Write-Success "✓ Admin Dashboard responding"
         Write-Host "  Status: $($response.StatusCode)"
     } catch {
-        Write-Error "✗ Admin Dashboard not responding"
+        Write-ErrorMessage "✗ Admin Dashboard not responding"
         Write-Host "  Error: $($_.Exception.Message)"
     }
 }
@@ -252,7 +252,7 @@ function Test-AdminRequirements {
         $nodeVersion = node --version
         Write-Success "✓ Node.js: $nodeVersion"
     } catch {
-        Write-Error "✗ Node.js not found"
+        Write-ErrorMessage "✗ Node.js not found"
     }
     
     # NPM
@@ -261,7 +261,7 @@ function Test-AdminRequirements {
         $npmVersion = npm --version
         Write-Success "✓ NPM: $npmVersion"
     } catch {
-        Write-Error "✗ NPM not found"
+        Write-ErrorMessage "✗ NPM not found"
     }
     
     # Ports
@@ -281,13 +281,13 @@ function Test-AdminRequirements {
     if (Test-Path $AdminServerPath) {
         Write-Success "✓ Admin server directory exists"
     } else {
-        Write-Error "✗ Admin server directory not found"
+        Write-ErrorMessage "✗ Admin server directory not found"
     }
     
     if (Test-Path $AdminDashboardPath) {
         Write-Success "✓ Admin dashboard directory exists"
     } else {
-        Write-Error "✗ Admin dashboard directory not found"
+        Write-ErrorMessage "✗ Admin dashboard directory not found"
     }
 }
 
@@ -457,7 +457,7 @@ if ($Command -eq "") {
         "config" { Show-AdminConfiguration }
         "check" { Test-AdminRequirements }
         default { 
-            Write-Error "Unknown command: $Command"
+            Write-ErrorMessage "Unknown command: $Command"
             Write-Host "`nAvailable commands:"
             Write-Host "  start, stop, restart, status, test, logs, open"
             Write-Host "  install, update, reset, build, config, check"
