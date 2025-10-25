@@ -368,8 +368,10 @@ function Show-AdminConfiguration {
     Write-Host "  URL: http://localhost:3003"
     
     Write-Info "`nEnvironment:"
-    Write-Host "  NODE_ENV: $($env:NODE_ENV ?? 'production')"
-    Write-Host "  Database: $($env:DATABASE_URL ?? 'not set')"
+    $nodeEnv = if ($env:NODE_ENV) { $env:NODE_ENV } else { 'production' }
+    $dbUrl = if ($env:DATABASE_URL) { $env:DATABASE_URL } else { 'not set' }
+    Write-Host "  NODE_ENV: $nodeEnv"
+    Write-Host "  Database: $dbUrl"
 }
 
 # Interactive Menu
