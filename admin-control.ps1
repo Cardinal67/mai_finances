@@ -834,9 +834,15 @@ function New-AppBackup {
         }
     }
     
-    # Create backup directory with timestamp
+    # Create backup directory with timestamp and type
     $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
-    $backupDir = Join-Path $backupRoot "mai_finances_backup_$timestamp"
+    $backupTypeName = switch ($typeChoice) {
+        "1" { "full" }
+        "2" { "partial" }
+        "3" { "quick" }
+        default { "unknown" }
+    }
+    $backupDir = Join-Path $backupRoot "mai_finances_backup_${backupTypeName}_$timestamp"
     
     Write-ColorInfo "`nCreating backup directory: $backupDir"
     New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
