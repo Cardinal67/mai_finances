@@ -518,9 +518,13 @@ function Show-AdminMenu {
 
 # Main interactive loop
 if ($Command -eq "") {
+    $choice = ""
     do {
-        Show-AdminMenu
-        $choice = Read-Host "Enter your choice"
+        # Only show menu if choice is empty (not chaining commands)
+        if ($choice -eq "") {
+            Show-AdminMenu
+            $choice = Read-Host "Enter your choice"
+        }
         
         switch ($choice) {
             "1" { Start-AdminServer; $choice = Read-Host "`nPress Enter to continue or enter next choice" }
@@ -541,12 +545,13 @@ if ($Command -eq "") {
             "16" { Show-AdminConfiguration; $choice = Read-Host "`nPress Enter to continue or enter next choice" }
             "17" { Test-AdminRequirements; $choice = Read-Host "`nPress Enter to continue or enter next choice" }
             "Q" { Write-ColorSuccess "`nGoodbye!"; exit }
-            default { Write-ColorWarning "`nInvalid choice"; Start-Sleep -Seconds 1 }
-        }
-        
-        # If user entered a new choice, process it immediately without showing menu
-        if ($choice -ne "") {
-            continue
+            default { 
+                if ($choice -ne "") {
+                    Write-ColorWarning "`nInvalid choice: $choice"
+                    Start-Sleep -Seconds 1
+                }
+                $choice = ""
+            }
         }
     } while ($true)
 } else {
