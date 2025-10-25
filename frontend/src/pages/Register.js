@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import SecurityQuestionsSetup from '../components/SecurityQuestionsSetup';
 
 const Register = () => {
   const navigate = useNavigate();
   const { register } = useAuth();
+  const [step, setStep] = useState(1); // 1: Register form, 2: Security questions
+  const [registeredToken, setRegisteredToken] = useState(null);
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -39,12 +42,15 @@ const Register = () => {
     setLoading(true);
 
     try {
-      await register({
+      const response = await register({
         username: formData.username,
         email: formData.email,
         password: formData.password,
       });
-      navigate('/dashboard');
+      
+      // Save token and move to security questions step
+      setRegisteredToken(localStorage.getItem('token'));
+      setStep(2);
     } catch (err) {
       console.error('[Register] Registration error:', err);
       let errorMessage = 'Registration failed. Please try again.';
@@ -111,15 +117,18 @@ const Register = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-4xl font-extrabold text-gray-900">
-            💰 Mai Finances
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Create your account
-          </p>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        {step === 1 ? (
+          // Step 1: Registration Form
+          <>
+            <div>
+              <h2 className="mt-6 text-center text-4xl font-extrabold text-gray-900">
+                💰 Mai Finances
+              </h2>
+              <p className="mt-2 text-center text-sm text-gray-600">
+                Create your account
+              </p>
+            </div>
+            <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
             <div className="rounded-md bg-red-50 p-4">
               <div className="text-sm text-red-700">{error}</div>
@@ -207,6 +216,26 @@ const Register = () => {
             </Link>
           </div>
         </form>
+          </>
+        ) : (
+          // Step 2: Security Questions Setup
+          <>
+            <div>
+              <h2 className="mt-6 text-center text-4xl font-extrabold text-gray-900">
+                💰 Mai Finances
+              </h2>
+              <p className="mt-2 text-center text-sm text-gray-600">
+                One more step - Set up security questions
+              </p>
+            </div>
+            <div className="mt-8">
+              <SecurityQuestionsSetup 
+                token={registeredToken}
+                onComplete={() => navigate('/dashboard')}
+              />
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

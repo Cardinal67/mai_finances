@@ -61,6 +61,7 @@ const preferencesRoutes = require('./routes/preferences');
 const calendarRoutes = require('./routes/calendar');
 const searchRoutes = require('./routes/search');
 const creditCardsRoutes = require('./routes/creditCards');
+const securityQuestionsRoutes = require('./routes/securityQuestions');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/payments', paymentsRoutes);
@@ -74,6 +75,7 @@ app.use('/api/preferences', preferencesRoutes);
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/credit-cards', creditCardsRoutes);
+app.use('/api/security-questions', securityQuestionsRoutes);
 
 // Catch-all for undefined routes
 app.use('*', (req, res) => {
