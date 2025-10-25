@@ -484,11 +484,256 @@ function Save-BackupConfig {
     Write-ColorSuccess "Backup configuration saved!"
 }
 
+# Get component sizes for preview
+function Get-ComponentSizes {
+    $sizes = @{}
+    
+    # Database size
+    try {
+        $envPath = Join-Path $ScriptRoot "backend\.env"
+        if (Test-Path $envPath) {
+            Get-Content $envPath | ForEach-Object {
+                if ($_ -match '^DATABASE_URL=(.+)$') {
+                    $dbUrl = $matches[1]
+                    if ($dbUrl -match 'postgres://([^:]+):([^@]+)@([^:]+):(\d+)/(.+)') {
+                        $dbUser = $matches[1]
+                        $dbPass = $matches[2]
+                        $dbHost = $matches[3]
+                        $dbPort = $matches[4]
+                        $dbName = $matches[5]
+                        
+                        $env:PGPASSWORD = $dbPass
+                        $sizeQuery = "SELECT pg_database_size('$dbName') as size;"
+                        $result = & psql -h $dbHost -p $dbPort -U $dbUser -d $dbName -t -c $sizeQuery 2>&1
+                        $env:PGPASSWORD = $null
+                        
+                        if ($result -match '(\d+)') {
+                            $sizes.Database = [math]::Round([int64]$matches[1] / 1MB, 2)
+                        } else {
+                            $sizes.Database = 0
+                        }
+                    }
+                }
+            }
+        } else {
+            $sizes.Database = 0
+        }
+    } catch {
+        $sizes.Database = 0
+    }
+    
+    # Backend size (excluding node_modules)
+    $backendPath = Join-Path $ScriptRoot "backend"
+    if (Test-Path $backendPath) {
+        $backendSize = (Get-ChildItem $backendPath -Recurse -File -Exclude "node_modules" -ErrorAction SilentlyContinue | 
+            Measure-Object -Property Length -Sum).Sum
+        $sizes.Backend = [math]::Round($backendSize / 1MB, 2)
+    } else {
+        $sizes.Backend = 0
+    }
+    
+    # Frontend size (excluding node_modules, build)
+    $frontendPath = Join-Path $ScriptRoot "frontend"
+    if (Test-Path $frontendPath) {
+        $frontendSize = (Get-ChildItem $frontendPath -Recurse -File -ErrorAction SilentlyContinue | 
+            Where-Object { $_.FullName -notmatch 'node_modules|build' } |
+            Measure-Object -Property Length -Sum).Sum
+        $sizes.Frontend = [math]::Round($frontendSize / 1MB, 2)
+    } else {
+        $sizes.Frontend = 0
+    }
+    
+    # Admin Server size (excluding node_modules)
+    $adminServerPath = Join-Path $ScriptRoot "admin-server"
+    if (Test-Path $adminServerPath) {
+        $adminServerSize = (Get-ChildItem $adminServerPath -Recurse -File -ErrorAction SilentlyContinue | 
+            Where-Object { $_.FullName -notmatch 'node_modules' } |
+            Measure-Object -Property Length -Sum).Sum
+        $sizes.AdminServer = [math]::Round($adminServerSize / 1MB, 2)
+    } else {
+        $sizes.AdminServer = 0
+    }
+    
+    # Admin Dashboard size (excluding node_modules, build)
+    $adminDashboardPath = Join-Path $ScriptRoot "admin-dashboard"
+    if (Test-Path $adminDashboardPath) {
+        $adminDashboardSize = (Get-ChildItem $adminDashboardPath -Recurse -File -ErrorAction SilentlyContinue | 
+            Where-Object { $_.FullName -notmatch 'node_modules|build' } |
+            Measure-Object -Property Length -Sum).Sum
+        $sizes.AdminDashboard = [math]::Round($adminDashboardSize / 1MB, 2)
+    } else {
+        $sizes.AdminDashboard = 0
+    }
+    
+    # Configuration files
+    $sizes.Config = 0.01  # Negligible
+    
+    return $sizes
+}
+
+# Preview backup
+function Show-BackupPreview {
+    param(
+        [hashtable]$Components
+    )
+    
+    Write-ColorTitle "`n=== Backup Preview ==="
+    
+    Write-Host ""
+    Write-ColorInfo "Components to backup:"
+    Write-Host ""
+    
+    $totalSize = 0
+    
+    if ($Components.Database) {
+        $dbSize = $Components.DatabaseSize
+        Write-Host "  ✓ Database" -NoNewline -ForegroundColor Green
+        Write-Host " ($dbSize MB)" -ForegroundColor Gray
+        $totalSize += $dbSize
+    } else {
+        Write-Host "  ✗ Database" -ForegroundColor DarkGray
+    }
+    
+    if ($Components.Backend) {
+        $backendSize = $Components.BackendSize
+        Write-Host "  ✓ Backend Code" -NoNewline -ForegroundColor Green
+        Write-Host " ($backendSize MB)" -ForegroundColor Gray
+        $totalSize += $backendSize
+    } else {
+        Write-Host "  ✗ Backend Code" -ForegroundColor DarkGray
+    }
+    
+    if ($Components.Frontend) {
+        $frontendSize = $Components.FrontendSize
+        Write-Host "  ✓ Frontend Code" -NoNewline -ForegroundColor Green
+        Write-Host " ($frontendSize MB)" -ForegroundColor Gray
+        $totalSize += $frontendSize
+    } else {
+        Write-Host "  ✗ Frontend Code" -ForegroundColor DarkGray
+    }
+    
+    if ($Components.AdminServer) {
+        $adminServerSize = $Components.AdminServerSize
+        Write-Host "  ✓ Admin Server" -NoNewline -ForegroundColor Green
+        Write-Host " ($adminServerSize MB)" -ForegroundColor Gray
+        $totalSize += $adminServerSize
+    } else {
+        Write-Host "  ✗ Admin Server" -ForegroundColor DarkGray
+    }
+    
+    if ($Components.AdminDashboard) {
+        $adminDashboardSize = $Components.AdminDashboardSize
+        Write-Host "  ✓ Admin Dashboard" -NoNewline -ForegroundColor Green
+        Write-Host " ($adminDashboardSize MB)" -ForegroundColor Gray
+        $totalSize += $adminDashboardSize
+    } else {
+        Write-Host "  ✗ Admin Dashboard" -ForegroundColor DarkGray
+    }
+    
+    if ($Components.Config) {
+        Write-Host "  ✓ Configuration Files" -NoNewline -ForegroundColor Green
+        Write-Host " (<0.01 MB)" -ForegroundColor Gray
+    } else {
+        Write-Host "  ✗ Configuration Files" -ForegroundColor DarkGray
+    }
+    
+    Write-Host ""
+    Write-ColorInfo "Estimated Total Size: $([math]::Round($totalSize, 2)) MB"
+    Write-Host ""
+}
+
 # Create full backup
 function New-AppBackup {
     Write-ColorTitle "`n=== Creating Mai Finances Backup ==="
     
     $config = Get-BackupConfig
+    
+    # Backup type selection
+    Write-Host ""
+    Write-ColorInfo "Backup Type:"
+    Write-Host "  [1] Full Backup (Everything)" -ForegroundColor Green
+    Write-Host "  [2] Partial Backup (Choose Components)" -ForegroundColor Cyan
+    Write-Host "  [3] Quick Backup (Code Only, No Database)" -ForegroundColor Yellow
+    Write-Host ""
+    
+    $typeChoice = Read-Host "Choose backup type"
+    
+    # Get component sizes
+    Write-ColorInfo "`nAnalyzing components..."
+    $sizes = Get-ComponentSizes
+    
+    # Initialize components selection
+    $components = @{
+        Database = $false
+        Backend = $false
+        Frontend = $false
+        AdminServer = $false
+        AdminDashboard = $false
+        Config = $false
+        DatabaseSize = $sizes.Database
+        BackendSize = $sizes.Backend
+        FrontendSize = $sizes.Frontend
+        AdminServerSize = $sizes.AdminServer
+        AdminDashboardSize = $sizes.AdminDashboard
+    }
+    
+    switch ($typeChoice) {
+        "1" {
+            # Full backup
+            $components.Database = $true
+            $components.Backend = $true
+            $components.Frontend = $true
+            $components.AdminServer = $true
+            $components.AdminDashboard = $true
+            $components.Config = $true
+        }
+        "2" {
+            # Partial backup - interactive selection
+            Write-Host ""
+            Write-ColorInfo "Select components to backup (Y/N for each):"
+            Write-Host ""
+            
+            $dbChoice = Read-Host "  Database ($($sizes.Database) MB)? (Y/N)"
+            $components.Database = ($dbChoice -eq "Y" -or $dbChoice -eq "y")
+            
+            $backendChoice = Read-Host "  Backend Code ($($sizes.Backend) MB)? (Y/N)"
+            $components.Backend = ($backendChoice -eq "Y" -or $backendChoice -eq "y")
+            
+            $frontendChoice = Read-Host "  Frontend Code ($($sizes.Frontend) MB)? (Y/N)"
+            $components.Frontend = ($frontendChoice -eq "Y" -or $frontendChoice -eq "y")
+            
+            $adminServerChoice = Read-Host "  Admin Server ($($sizes.AdminServer) MB)? (Y/N)"
+            $components.AdminServer = ($adminServerChoice -eq "Y" -or $adminServerChoice -eq "y")
+            
+            $adminDashboardChoice = Read-Host "  Admin Dashboard ($($sizes.AdminDashboard) MB)? (Y/N)"
+            $components.AdminDashboard = ($adminDashboardChoice -eq "Y" -or $adminDashboardChoice -eq "y")
+            
+            $configChoice = Read-Host "  Configuration Files? (Y/N)"
+            $components.Config = ($configChoice -eq "Y" -or $configChoice -eq "y")
+        }
+        "3" {
+            # Quick backup (no database)
+            $components.Database = $false
+            $components.Backend = $true
+            $components.Frontend = $true
+            $components.AdminServer = $true
+            $components.AdminDashboard = $true
+            $components.Config = $true
+        }
+        default {
+            Write-ColorError "Invalid choice"
+            return
+        }
+    }
+    
+    # Show preview
+    Show-BackupPreview -Components $components
+    
+    $confirm = Read-Host "Proceed with backup? (Y/N)"
+    if ($confirm -ne "Y" -and $confirm -ne "y") {
+        Write-ColorWarning "Backup cancelled"
+        return
+    }
     
     # Ask for backup location
     Write-Host ""
@@ -541,81 +786,113 @@ function New-AppBackup {
     New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
     
     try {
-        # Backup database
-        Write-ColorInfo "`n[1/6] Backing up database..."
-        $dbBackupPath = Join-Path $backupDir "database.sql"
+        $step = 1
+        $totalSteps = ($components.Database -as [int]) + ($components.Backend -as [int]) + 
+                      ($components.Frontend -as [int]) + ($components.AdminServer -as [int]) + 
+                      ($components.AdminDashboard -as [int]) + ($components.Config -as [int])
         
-        # Load database connection from .env
-        $envPath = Join-Path $ScriptRoot "backend\.env"
-        if (Test-Path $envPath) {
-            Get-Content $envPath | ForEach-Object {
-                if ($_ -match '^DATABASE_URL=(.+)$') {
-                    $dbUrl = $matches[1]
-                    
-                    # Parse PostgreSQL connection string
-                    if ($dbUrl -match 'postgres://([^:]+):([^@]+)@([^:]+):(\d+)/(.+)') {
-                        $dbUser = $matches[1]
-                        $dbPass = $matches[2]
-                        $dbHost = $matches[3]
-                        $dbPort = $matches[4]
-                        $dbName = $matches[5]
+        # Backup database
+        if ($components.Database) {
+            Write-ColorInfo "`n[$step/$totalSteps] Backing up database..."
+            $step++
+            $dbBackupPath = Join-Path $backupDir "database.sql"
+            
+            # Load database connection from .env
+            $envPath = Join-Path $ScriptRoot "backend\.env"
+            if (Test-Path $envPath) {
+                Get-Content $envPath | ForEach-Object {
+                    if ($_ -match '^DATABASE_URL=(.+)$') {
+                        $dbUrl = $matches[1]
                         
-                        $env:PGPASSWORD = $dbPass
-                        & pg_dump -h $dbHost -p $dbPort -U $dbUser -d $dbName -f $dbBackupPath 2>&1 | Out-Null
-                        $env:PGPASSWORD = $null
-                        
-                        if (Test-Path $dbBackupPath) {
-                            $dbSize = (Get-Item $dbBackupPath).Length / 1KB
-                            Write-ColorSuccess "  ✓ Database backed up ($([math]::Round($dbSize, 2)) KB)"
-                        } else {
-                            Write-ColorWarning "  ⚠ Database backup failed (pg_dump might not be installed)"
+                        # Parse PostgreSQL connection string
+                        if ($dbUrl -match 'postgres://([^:]+):([^@]+)@([^:]+):(\d+)/(.+)') {
+                            $dbUser = $matches[1]
+                            $dbPass = $matches[2]
+                            $dbHost = $matches[3]
+                            $dbPort = $matches[4]
+                            $dbName = $matches[5]
+                            
+                            $env:PGPASSWORD = $dbPass
+                            & pg_dump -h $dbHost -p $dbPort -U $dbUser -d $dbName -f $dbBackupPath 2>&1 | Out-Null
+                            $env:PGPASSWORD = $null
+                            
+                            if (Test-Path $dbBackupPath) {
+                                $dbSize = (Get-Item $dbBackupPath).Length / 1KB
+                                Write-ColorSuccess "  ✓ Database backed up ($([math]::Round($dbSize, 2)) KB)"
+                            } else {
+                                Write-ColorWarning "  ⚠ Database backup failed (pg_dump might not be installed)"
+                            }
                         }
                     }
                 }
+            } else {
+                Write-ColorWarning "  ⚠ .env file not found, skipping database backup"
             }
-        } else {
-            Write-ColorWarning "  ⚠ .env file not found, skipping database backup"
         }
         
         # Backup backend code
-        Write-ColorInfo "`n[2/6] Backing up backend code..."
-        $backendBackup = Join-Path $backupDir "backend"
-        robocopy "$ScriptRoot\backend" $backendBackup /E /XD node_modules .git /XF package-lock.json /NFL /NDL /NJH /NJS | Out-Null
-        Write-ColorSuccess "  ✓ Backend code backed up"
+        if ($components.Backend) {
+            Write-ColorInfo "`n[$step/$totalSteps] Backing up backend code..."
+            $step++
+            $backendBackup = Join-Path $backupDir "backend"
+            robocopy "$ScriptRoot\backend" $backendBackup /E /XD node_modules .git /XF package-lock.json /NFL /NDL /NJH /NJS | Out-Null
+            Write-ColorSuccess "  ✓ Backend code backed up"
+        }
         
         # Backup frontend code
-        Write-ColorInfo "`n[3/6] Backing up frontend code..."
-        $frontendBackup = Join-Path $backupDir "frontend"
-        robocopy "$ScriptRoot\frontend" $frontendBackup /E /XD node_modules build .git /XF package-lock.json /NFL /NDL /NJH /NJS | Out-Null
-        Write-ColorSuccess "  ✓ Frontend code backed up"
+        if ($components.Frontend) {
+            Write-ColorInfo "`n[$step/$totalSteps] Backing up frontend code..."
+            $step++
+            $frontendBackup = Join-Path $backupDir "frontend"
+            robocopy "$ScriptRoot\frontend" $frontendBackup /E /XD node_modules build .git /XF package-lock.json /NFL /NDL /NJH /NJS | Out-Null
+            Write-ColorSuccess "  ✓ Frontend code backed up"
+        }
         
         # Backup admin server
-        Write-ColorInfo "`n[4/6] Backing up admin server..."
-        $adminServerBackup = Join-Path $backupDir "admin-server"
-        robocopy "$ScriptRoot\admin-server" $adminServerBackup /E /XD node_modules .git /XF package-lock.json /NFL /NDL /NJH /NJS | Out-Null
-        Write-ColorSuccess "  ✓ Admin server backed up"
+        if ($components.AdminServer) {
+            Write-ColorInfo "`n[$step/$totalSteps] Backing up admin server..."
+            $step++
+            $adminServerBackup = Join-Path $backupDir "admin-server"
+            robocopy "$ScriptRoot\admin-server" $adminServerBackup /E /XD node_modules .git /XF package-lock.json /NFL /NDL /NJH /NJS | Out-Null
+            Write-ColorSuccess "  ✓ Admin server backed up"
+        }
         
         # Backup admin dashboard
-        Write-ColorInfo "`n[5/6] Backing up admin dashboard..."
-        $adminDashboardBackup = Join-Path $backupDir "admin-dashboard"
-        robocopy "$ScriptRoot\admin-dashboard" $adminDashboardBackup /E /XD node_modules build .git /XF package-lock.json /NFL /NDL /NJH /NJS | Out-Null
-        Write-ColorSuccess "  ✓ Admin dashboard backed up"
+        if ($components.AdminDashboard) {
+            Write-ColorInfo "`n[$step/$totalSteps] Backing up admin dashboard..."
+            $step++
+            $adminDashboardBackup = Join-Path $backupDir "admin-dashboard"
+            robocopy "$ScriptRoot\admin-dashboard" $adminDashboardBackup /E /XD node_modules build .git /XF package-lock.json /NFL /NDL /NJH /NJS | Out-Null
+            Write-ColorSuccess "  ✓ Admin dashboard backed up"
+        }
         
         # Backup configuration files
-        Write-ColorInfo "`n[6/6] Backing up configuration..."
-        Copy-Item "$ScriptRoot\.env" -Destination "$backupDir\.env" -ErrorAction SilentlyContinue
-        Copy-Item "$ScriptRoot\admin-control.ps1" -Destination "$backupDir\admin-control.ps1" -ErrorAction SilentlyContinue
-        Copy-Item "$ScriptRoot\start-app.ps1" -Destination "$backupDir\start-app.ps1" -ErrorAction SilentlyContinue
-        Copy-Item "$ScriptRoot\.backup-config.json" -Destination "$backupDir\.backup-config.json" -ErrorAction SilentlyContinue
-        Write-ColorSuccess "  ✓ Configuration backed up"
+        if ($components.Config) {
+            Write-ColorInfo "`n[$step/$totalSteps] Backing up configuration..."
+            $step++
+            Copy-Item "$ScriptRoot\.env" -Destination "$backupDir\.env" -ErrorAction SilentlyContinue
+            Copy-Item "$ScriptRoot\admin-control.ps1" -Destination "$backupDir\admin-control.ps1" -ErrorAction SilentlyContinue
+            Copy-Item "$ScriptRoot\start-app.ps1" -Destination "$backupDir\start-app.ps1" -ErrorAction SilentlyContinue
+            Copy-Item "$ScriptRoot\.backup-config.json" -Destination "$backupDir\.backup-config.json" -ErrorAction SilentlyContinue
+            Write-ColorSuccess "  ✓ Configuration backed up"
+        }
         
         # Create backup metadata
+        $backupType = if ($typeChoice -eq "1") { "Full" } 
+                      elseif ($typeChoice -eq "2") { "Partial" } 
+                      else { "Quick" }
+        
         $metadata = @{
             Timestamp = $timestamp
             Date = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            Version = "1.0"
-            BackupType = "Full"
-            DatabaseIncluded = Test-Path $dbBackupPath
+            Version = "1.1"
+            BackupType = $backupType
+            DatabaseIncluded = $components.Database -and (Test-Path (Join-Path $backupDir "database.sql"))
+            BackendIncluded = $components.Backend
+            FrontendIncluded = $components.Frontend
+            AdminServerIncluded = $components.AdminServer
+            AdminDashboardIncluded = $components.AdminDashboard
+            ConfigIncluded = $components.Config
         }
         $metadata | ConvertTo-Json | Set-Content (Join-Path $backupDir "backup-info.json")
         
@@ -667,7 +944,16 @@ function Show-Backups {
                 $info = if (Test-Path $infoPath) {
                     Get-Content $infoPath -Raw | ConvertFrom-Json
                 } else {
-                    @{ Date = $backup.CreationTime.ToString("yyyy-MM-dd HH:mm:ss"); DatabaseIncluded = $false }
+                    @{ 
+                        Date = $backup.CreationTime.ToString("yyyy-MM-dd HH:mm:ss")
+                        BackupType = "Unknown"
+                        DatabaseIncluded = $false
+                        BackendIncluded = $false
+                        FrontendIncluded = $false
+                        AdminServerIncluded = $false
+                        AdminDashboardIncluded = $false
+                        ConfigIncluded = $false
+                    }
                 }
                 
                 $allBackups += [PSCustomObject]@{
@@ -675,7 +961,13 @@ function Show-Backups {
                     Path = $backup.FullName
                     Date = $info.Date
                     Size = [math]::Round($size, 2)
+                    BackupType = if ($info.BackupType) { $info.BackupType } else { "Full" }
                     DatabaseIncluded = $info.DatabaseIncluded
+                    BackendIncluded = if ($info.PSObject.Properties['BackendIncluded']) { $info.BackendIncluded } else { $true }
+                    FrontendIncluded = if ($info.PSObject.Properties['FrontendIncluded']) { $info.FrontendIncluded } else { $true }
+                    AdminServerIncluded = if ($info.PSObject.Properties['AdminServerIncluded']) { $info.AdminServerIncluded } else { $true }
+                    AdminDashboardIncluded = if ($info.PSObject.Properties['AdminDashboardIncluded']) { $info.AdminDashboardIncluded } else { $true }
+                    ConfigIncluded = if ($info.PSObject.Properties['ConfigIncluded']) { $info.ConfigIncluded } else { $true }
                     Location = Split-Path $backup.FullName -Parent
                 }
             }
@@ -693,17 +985,37 @@ function Show-Backups {
     Write-Host ""
     $index = 1
     foreach ($backup in $allBackups) {
-        $dbIndicator = if ($backup.DatabaseIncluded) { "✓ DB" } else { "✗ DB" }
+        # Build component indicators
+        $components = @()
+        if ($backup.DatabaseIncluded) { $components += "DB" }
+        if ($backup.BackendIncluded) { $components += "BE" }
+        if ($backup.FrontendIncluded) { $components += "FE" }
+        if ($backup.AdminServerIncluded) { $components += "AS" }
+        if ($backup.AdminDashboardIncluded) { $components += "AD" }
+        if ($backup.ConfigIncluded) { $components += "CF" }
+        
+        $componentStr = $components -join ", "
+        $typeColor = switch ($backup.BackupType) {
+            "Full" { "Green" }
+            "Partial" { "Yellow" }
+            "Quick" { "Cyan" }
+            default { "Gray" }
+        }
+        
         Write-Host "  [$index] " -NoNewline -ForegroundColor Cyan
         Write-Host "$($backup.Date) " -NoNewline -ForegroundColor White
         Write-Host "($($backup.Size) MB) " -NoNewline -ForegroundColor Gray
-        Write-Host "[$dbIndicator]" -ForegroundColor $(if ($backup.DatabaseIncluded) { "Green" } else { "Yellow" })
+        Write-Host "[$($backup.BackupType)] " -NoNewline -ForegroundColor $typeColor
+        Write-Host "[$componentStr]" -ForegroundColor DarkCyan
         Write-Host "      Path: $($backup.Path)" -ForegroundColor DarkGray
         $index++
     }
     
     Write-Host ""
     Write-ColorInfo "Total backups: $($allBackups.Count)"
+    Write-Host ""
+    Write-Host "  Legend: " -NoNewline -ForegroundColor DarkGray
+    Write-Host "DB=Database, BE=Backend, FE=Frontend, AS=AdminServer, AD=AdminDashboard, CF=Config" -ForegroundColor DarkGray
     
     return $allBackups
 }
