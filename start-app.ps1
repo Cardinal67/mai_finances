@@ -1,9 +1,9 @@
 # Mai Finances Startup Script
-# Run this script to start, stop, or restart frontend, backend, or both
+# Run this script to start, stop, or restart frontend, backend, admin or all
 
 param(
     [Parameter(Position=0)]
-    [ValidateSet("frontend", "backend", "both", "stop-frontend", "stop-backend", "stop-both", "restart-frontend", "restart-backend", "restart-both", "")]
+    [ValidateSet("frontend", "backend", "admin", "all", "stop-frontend", "stop-backend", "stop-admin", "stop-all", "restart-frontend", "restart-backend", "restart-admin", "restart-all", "")]
     [string]$Mode = ""
 )
 
@@ -19,7 +19,7 @@ function Stop-Backend {
     
     $stopped = $false
     Get-Process -Name node -ErrorAction SilentlyContinue | 
-        Where-Object { $_.Path -like "*node.exe*" } |
+        Where-Object { $_.CommandLine -like "*backend*server.js*" } |
         ForEach-Object {
             Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
             $stopped = $true
@@ -41,7 +41,7 @@ function Stop-Frontend {
     
     $stopped = $false
     Get-Process -Name node -ErrorAction SilentlyContinue | 
-        Where-Object { $_.CommandLine -like "*react-scripts*" -or $_.MainWindowTitle -like "*Mai Finances Frontend*" } |
+        Where-Object { $_.CommandLine -like "*frontend*react-scripts*" } |
         ForEach-Object {
             Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
             $stopped = $true
@@ -56,10 +56,33 @@ function Stop-Frontend {
     return $true
 }
 
-# Function to stop both
-function Stop-Both {
+# Function to stop admin
+function Stop-Admin {
+    Write-Host "`nStopping Admin Server..." -ForegroundColor Yellow
+    Write-Host "========================================" -ForegroundColor Yellow
+    
+    $stopped = $false
+    Get-Process -Name node -ErrorAction SilentlyContinue | 
+        Where-Object { $_.CommandLine -like "*admin-server*server.js*" -or $_.CommandLine -like "*admin-dashboard*react-scripts*" } |
+        ForEach-Object {
+            Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+            $stopped = $true
+        }
+    
+    if ($stopped) {
+        Write-Host "Admin stopped successfully" -ForegroundColor Green
+    } else {
+        Write-Host "No admin processes found" -ForegroundColor Gray
+    }
+    
+    return $true
+}
+
+# Function to stop all
+function Stop-All {
     Stop-Backend
     Stop-Frontend
+    Stop-Admin
 }
 
 # Function to start backend
@@ -110,11 +133,49 @@ function Start-Frontend {
     return $true
 }
 
-# Function to start both
-function Start-Both {
+# Function to start admin
+function Start-Admin {
+    Write-Host "`nStarting Admin Server..." -ForegroundColor Blue
+    Write-Host "========================================" -ForegroundColor Blue
+    
+    $adminServerPath = Join-Path $PSScriptRoot "admin-server"
+    $adminDashboardPath = Join-Path $PSScriptRoot "admin-dashboard"
+    
+    if (-not (Test-Path $adminServerPath)) {
+        Write-Host "ERROR: Admin server directory not found!" -ForegroundColor Red
+        return $false
+    }
+    
+    if (-not (Test-Path $adminDashboardPath)) {
+        Write-Host "ERROR: Admin dashboard directory not found!" -ForegroundColor Red
+        return $false
+    }
+    
+    # Kill any existing admin processes
+    Stop-Admin | Out-Null
+    
+    Start-Sleep -Seconds 1
+    
+    # Start admin server in new window
+    $adminServerJob = Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$adminServerPath'; Write-Host 'Mai Finances Admin Server' -ForegroundColor Blue; Write-Host '========================================' -ForegroundColor Blue; node server.js" -PassThru
+    
+    Start-Sleep -Seconds 2
+    
+    # Start admin dashboard in new window
+    $adminDashboardJob = Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$adminDashboardPath'; Write-Host 'Mai Finances Admin Dashboard' -ForegroundColor Blue; Write-Host '========================================' -ForegroundColor Blue; npm start" -PassThru
+    
+    Write-Host "Admin Server started in new window (Port 3002)" -ForegroundColor Green
+    Write-Host "Admin Dashboard started in new window (Port 3003)" -ForegroundColor Green
+    return $true
+}
+
+# Function to start all
+function Start-All {
     Start-Backend
     Start-Sleep -Seconds 2
     Start-Frontend
+    Start-Sleep -Seconds 2
+    Start-Admin
 }
 
 # Function to restart backend
@@ -131,11 +192,18 @@ function Restart-Frontend {
     Start-Frontend
 }
 
-# Function to restart both
-function Restart-Both {
-    Stop-Both
+# Function to restart admin
+function Restart-Admin {
+    Stop-Admin
+    Start-Sleep -Seconds 1
+    Start-Admin
+}
+
+# Function to restart all
+function Restart-All {
+    Stop-All
     Start-Sleep -Seconds 2
-    Start-Both
+    Start-All
 }
 
 # Function to display menu
@@ -147,19 +215,22 @@ function Show-Menu {
     Write-Host "=================================================" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "  START OPTIONS:" -ForegroundColor White
-    Write-Host "  [1] Start Frontend Only" -ForegroundColor Magenta
-    Write-Host "  [2] Start Backend Only" -ForegroundColor Cyan
-    Write-Host "  [3] Start Both (Recommended)" -ForegroundColor Green
+    Write-Host "  [1] Start Frontend Only (Port 3000)" -ForegroundColor Magenta
+    Write-Host "  [2] Start Backend Only (Port 3001)" -ForegroundColor Cyan
+    Write-Host "  [3] Start Admin Dashboard (Ports 3002/3003)" -ForegroundColor Blue
+    Write-Host "  [4] Start All Servers (Recommended)" -ForegroundColor Green
     Write-Host ""
     Write-Host "  STOP OPTIONS:" -ForegroundColor White
-    Write-Host "  [4] Stop Frontend" -ForegroundColor Magenta
-    Write-Host "  [5] Stop Backend" -ForegroundColor Cyan
-    Write-Host "  [6] Stop Both" -ForegroundColor Yellow
+    Write-Host "  [5] Stop Frontend" -ForegroundColor Magenta
+    Write-Host "  [6] Stop Backend" -ForegroundColor Cyan
+    Write-Host "  [7] Stop Admin" -ForegroundColor Blue
+    Write-Host "  [8] Stop All" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "  RESTART OPTIONS:" -ForegroundColor White
-    Write-Host "  [7] Restart Frontend" -ForegroundColor Magenta
-    Write-Host "  [8] Restart Backend" -ForegroundColor Cyan
-    Write-Host "  [9] Restart Both" -ForegroundColor Green
+    Write-Host "  [9] Restart Frontend" -ForegroundColor Magenta
+    Write-Host "  [A] Restart Backend" -ForegroundColor Cyan
+    Write-Host "  [B] Restart Admin" -ForegroundColor Blue
+    Write-Host "  [C] Restart All" -ForegroundColor Green
     Write-Host ""
     Write-Host "  [Q] Quit" -ForegroundColor Red
     Write-Host ""
@@ -188,49 +259,69 @@ if ($Mode -eq "") {
                 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
             }
             "3" {
-                Start-Both
-                Write-Host ""
-                Write-Host "Both servers are starting!" -ForegroundColor Green
-                Write-Host "Access your app at: http://localhost:3000" -ForegroundColor Green
+                Start-Admin
                 Write-Host ""
                 Write-Host "Press any key to return to menu..." -ForegroundColor Cyan
                 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
             }
             "4" {
-                Stop-Frontend
+                Start-All
+                Write-Host ""
+                Write-Host "All servers are starting!" -ForegroundColor Green
+                Write-Host "Main App: http://localhost:3000" -ForegroundColor Green
+                Write-Host "Admin Dashboard: http://localhost:3003" -ForegroundColor Green
                 Write-Host ""
                 Write-Host "Press any key to return to menu..." -ForegroundColor Cyan
                 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
             }
             "5" {
-                Stop-Backend
+                Stop-Frontend
                 Write-Host ""
                 Write-Host "Press any key to return to menu..." -ForegroundColor Cyan
                 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
             }
             "6" {
-                Stop-Both
+                Stop-Backend
                 Write-Host ""
                 Write-Host "Press any key to return to menu..." -ForegroundColor Cyan
                 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
             }
             "7" {
-                Restart-Frontend
+                Stop-Admin
                 Write-Host ""
                 Write-Host "Press any key to return to menu..." -ForegroundColor Cyan
                 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
             }
             "8" {
-                Restart-Backend
+                Stop-All
                 Write-Host ""
                 Write-Host "Press any key to return to menu..." -ForegroundColor Cyan
                 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
             }
             "9" {
-                Restart-Both
+                Restart-Frontend
                 Write-Host ""
-                Write-Host "Both servers restarted!" -ForegroundColor Green
-                Write-Host "Access your app at: http://localhost:3000" -ForegroundColor Green
+                Write-Host "Press any key to return to menu..." -ForegroundColor Cyan
+                $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+            }
+            "A" {
+                Restart-Backend
+                Write-Host ""
+                Write-Host "Press any key to return to menu..." -ForegroundColor Cyan
+                $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+            }
+            "B" {
+                Restart-Admin
+                Write-Host ""
+                Write-Host "Press any key to return to menu..." -ForegroundColor Cyan
+                $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+            }
+            "C" {
+                Restart-All
+                Write-Host ""
+                Write-Host "All servers restarted!" -ForegroundColor Green
+                Write-Host "Main App: http://localhost:3000" -ForegroundColor Green
+                Write-Host "Admin Dashboard: http://localhost:3003" -ForegroundColor Green
                 Write-Host ""
                 Write-Host "Press any key to return to menu..." -ForegroundColor Cyan
                 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
@@ -257,10 +348,15 @@ if ($Mode -eq "") {
             Start-Backend
             Write-Host "`nBackend is starting!" -ForegroundColor Green
         }
-        "both" {
-            Start-Both
-            Write-Host "`nBoth servers are starting!" -ForegroundColor Green
-            Write-Host "Access your app at: http://localhost:3000" -ForegroundColor Green
+        "admin" {
+            Start-Admin
+            Write-Host "`nAdmin Dashboard is starting!" -ForegroundColor Green
+        }
+        "all" {
+            Start-All
+            Write-Host "`nAll servers are starting!" -ForegroundColor Green
+            Write-Host "Main App: http://localhost:3000" -ForegroundColor Green
+            Write-Host "Admin Dashboard: http://localhost:3003" -ForegroundColor Green
         }
         "stop-frontend" {
             Stop-Frontend
@@ -268,8 +364,11 @@ if ($Mode -eq "") {
         "stop-backend" {
             Stop-Backend
         }
-        "stop-both" {
-            Stop-Both
+        "stop-admin" {
+            Stop-Admin
+        }
+        "stop-all" {
+            Stop-All
         }
         "restart-frontend" {
             Restart-Frontend
@@ -279,10 +378,15 @@ if ($Mode -eq "") {
             Restart-Backend
             Write-Host "`nBackend restarted!" -ForegroundColor Green
         }
-        "restart-both" {
-            Restart-Both
-            Write-Host "`nBoth servers restarted!" -ForegroundColor Green
-            Write-Host "Access your app at: http://localhost:3000" -ForegroundColor Green
+        "restart-admin" {
+            Restart-Admin
+            Write-Host "`nAdmin Dashboard restarted!" -ForegroundColor Green
+        }
+        "restart-all" {
+            Restart-All
+            Write-Host "`nAll servers restarted!" -ForegroundColor Green
+            Write-Host "Main App: http://localhost:3000" -ForegroundColor Green
+            Write-Host "Admin Dashboard: http://localhost:3003" -ForegroundColor Green
         }
     }
     
