@@ -453,6 +453,525 @@ function Reset-AdminInstallation {
     Write-ColorSuccess "`nClean installation complete!"
 }
 
+# ========================================
+# BACKUP & RESTORE FUNCTIONS
+# ========================================
+
+# Get backup configuration
+function Get-BackupConfig {
+    $configPath = Join-Path $ScriptRoot ".backup-config.json"
+    
+    if (Test-Path $configPath) {
+        $config = Get-Content $configPath -Raw | ConvertFrom-Json
+    } else {
+        # Default configuration
+        $config = @{
+            DefaultPath = Join-Path $ScriptRoot "backups"
+            KeepLastN = 10
+            CustomPaths = @()
+        }
+    }
+    
+    return $config
+}
+
+# Save backup configuration
+function Save-BackupConfig {
+    param($Config)
+    
+    $configPath = Join-Path $ScriptRoot ".backup-config.json"
+    $Config | ConvertTo-Json -Depth 10 | Set-Content $configPath
+    Write-ColorSuccess "Backup configuration saved!"
+}
+
+# Create full backup
+function New-AppBackup {
+    Write-ColorTitle "`n=== Creating Mai Finances Backup ==="
+    
+    $config = Get-BackupConfig
+    
+    # Ask for backup location
+    Write-Host ""
+    Write-ColorInfo "Backup Location Options:"
+    Write-Host "  [1] Default: $($config.DefaultPath)" -ForegroundColor Cyan
+    
+    $index = 2
+    foreach ($path in $config.CustomPaths) {
+        Write-Host "  [$index] Custom: $path" -ForegroundColor Cyan
+        $index++
+    }
+    
+    Write-Host "  [$index] Add new location" -ForegroundColor Yellow
+    Write-Host ""
+    
+    $locationChoice = Read-Host "Choose backup location"
+    
+    if ($locationChoice -eq $index) {
+        # Add new location
+        $newPath = Read-Host "Enter new backup path"
+        if (-not (Test-Path $newPath)) {
+            $create = Read-Host "Path doesn't exist. Create it? (Y/N)"
+            if ($create -eq "Y" -or $create -eq "y") {
+                New-Item -ItemType Directory -Path $newPath -Force | Out-Null
+            } else {
+                Write-ColorError "Backup cancelled"
+                return
+            }
+        }
+        $backupRoot = $newPath
+        $config.CustomPaths += $newPath
+        Save-BackupConfig -Config $config
+    } elseif ($locationChoice -eq "1") {
+        $backupRoot = $config.DefaultPath
+    } else {
+        $pathIndex = [int]$locationChoice - 2
+        if ($pathIndex -ge 0 -and $pathIndex -lt $config.CustomPaths.Count) {
+            $backupRoot = $config.CustomPaths[$pathIndex]
+        } else {
+            Write-ColorError "Invalid choice"
+            return
+        }
+    }
+    
+    # Create backup directory with timestamp
+    $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
+    $backupDir = Join-Path $backupRoot "mai_finances_backup_$timestamp"
+    
+    Write-ColorInfo "`nCreating backup directory: $backupDir"
+    New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
+    
+    try {
+        # Backup database
+        Write-ColorInfo "`n[1/6] Backing up database..."
+        $dbBackupPath = Join-Path $backupDir "database.sql"
+        
+        # Load database connection from .env
+        $envPath = Join-Path $ScriptRoot "backend\.env"
+        if (Test-Path $envPath) {
+            Get-Content $envPath | ForEach-Object {
+                if ($_ -match '^DATABASE_URL=(.+)$') {
+                    $dbUrl = $matches[1]
+                    
+                    # Parse PostgreSQL connection string
+                    if ($dbUrl -match 'postgres://([^:]+):([^@]+)@([^:]+):(\d+)/(.+)') {
+                        $dbUser = $matches[1]
+                        $dbPass = $matches[2]
+                        $dbHost = $matches[3]
+                        $dbPort = $matches[4]
+                        $dbName = $matches[5]
+                        
+                        $env:PGPASSWORD = $dbPass
+                        & pg_dump -h $dbHost -p $dbPort -U $dbUser -d $dbName -f $dbBackupPath 2>&1 | Out-Null
+                        $env:PGPASSWORD = $null
+                        
+                        if (Test-Path $dbBackupPath) {
+                            $dbSize = (Get-Item $dbBackupPath).Length / 1KB
+                            Write-ColorSuccess "  ✓ Database backed up ($([math]::Round($dbSize, 2)) KB)"
+                        } else {
+                            Write-ColorWarning "  ⚠ Database backup failed (pg_dump might not be installed)"
+                        }
+                    }
+                }
+            }
+        } else {
+            Write-ColorWarning "  ⚠ .env file not found, skipping database backup"
+        }
+        
+        # Backup backend code
+        Write-ColorInfo "`n[2/6] Backing up backend code..."
+        $backendBackup = Join-Path $backupDir "backend"
+        robocopy "$ScriptRoot\backend" $backendBackup /E /XD node_modules .git /XF package-lock.json /NFL /NDL /NJH /NJS | Out-Null
+        Write-ColorSuccess "  ✓ Backend code backed up"
+        
+        # Backup frontend code
+        Write-ColorInfo "`n[3/6] Backing up frontend code..."
+        $frontendBackup = Join-Path $backupDir "frontend"
+        robocopy "$ScriptRoot\frontend" $frontendBackup /E /XD node_modules build .git /XF package-lock.json /NFL /NDL /NJH /NJS | Out-Null
+        Write-ColorSuccess "  ✓ Frontend code backed up"
+        
+        # Backup admin server
+        Write-ColorInfo "`n[4/6] Backing up admin server..."
+        $adminServerBackup = Join-Path $backupDir "admin-server"
+        robocopy "$ScriptRoot\admin-server" $adminServerBackup /E /XD node_modules .git /XF package-lock.json /NFL /NDL /NJH /NJS | Out-Null
+        Write-ColorSuccess "  ✓ Admin server backed up"
+        
+        # Backup admin dashboard
+        Write-ColorInfo "`n[5/6] Backing up admin dashboard..."
+        $adminDashboardBackup = Join-Path $backupDir "admin-dashboard"
+        robocopy "$ScriptRoot\admin-dashboard" $adminDashboardBackup /E /XD node_modules build .git /XF package-lock.json /NFL /NDL /NJH /NJS | Out-Null
+        Write-ColorSuccess "  ✓ Admin dashboard backed up"
+        
+        # Backup configuration files
+        Write-ColorInfo "`n[6/6] Backing up configuration..."
+        Copy-Item "$ScriptRoot\.env" -Destination "$backupDir\.env" -ErrorAction SilentlyContinue
+        Copy-Item "$ScriptRoot\admin-control.ps1" -Destination "$backupDir\admin-control.ps1" -ErrorAction SilentlyContinue
+        Copy-Item "$ScriptRoot\start-app.ps1" -Destination "$backupDir\start-app.ps1" -ErrorAction SilentlyContinue
+        Copy-Item "$ScriptRoot\.backup-config.json" -Destination "$backupDir\.backup-config.json" -ErrorAction SilentlyContinue
+        Write-ColorSuccess "  ✓ Configuration backed up"
+        
+        # Create backup metadata
+        $metadata = @{
+            Timestamp = $timestamp
+            Date = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+            Version = "1.0"
+            BackupType = "Full"
+            DatabaseIncluded = Test-Path $dbBackupPath
+        }
+        $metadata | ConvertTo-Json | Set-Content (Join-Path $backupDir "backup-info.json")
+        
+        # Calculate total size
+        $totalSize = (Get-ChildItem $backupDir -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB
+        
+        Write-Host ""
+        Write-ColorSuccess "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        Write-ColorSuccess "✓ Backup completed successfully!"
+        Write-ColorSuccess "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        Write-Host ""
+        Write-Host "  Location: $backupDir" -ForegroundColor Green
+        Write-Host "  Size: $([math]::Round($totalSize, 2)) MB" -ForegroundColor Green
+        Write-Host "  Time: $(Get-Date -Format 'HH:mm:ss')" -ForegroundColor Green
+        Write-Host ""
+        
+        # Clean old backups if configured
+        $backups = Get-ChildItem $backupRoot -Directory | Where-Object { $_.Name -like "mai_finances_backup_*" } | Sort-Object CreationTime -Descending
+        if ($backups.Count -gt $config.KeepLastN) {
+            Write-ColorInfo "Cleaning old backups (keeping last $($config.KeepLastN))..."
+            $backups | Select-Object -Skip $config.KeepLastN | ForEach-Object {
+                Remove-Item $_.FullName -Recurse -Force
+                Write-Host "  Removed: $($_.Name)" -ForegroundColor DarkGray
+            }
+        }
+        
+    } catch {
+        Write-ColorError "`n✗ Backup failed: $($_.Exception.Message)"
+    }
+}
+
+# List existing backups
+function Show-Backups {
+    Write-ColorTitle "`n=== Available Backups ==="
+    
+    $config = Get-BackupConfig
+    $allBackups = @()
+    
+    # Get backups from all configured locations
+    $searchPaths = @($config.DefaultPath) + $config.CustomPaths
+    
+    foreach ($path in $searchPaths) {
+        if (Test-Path $path) {
+            $backups = Get-ChildItem $path -Directory | Where-Object { $_.Name -like "mai_finances_backup_*" }
+            foreach ($backup in $backups) {
+                $infoPath = Join-Path $backup.FullName "backup-info.json"
+                $size = (Get-ChildItem $backup.FullName -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB
+                
+                $info = if (Test-Path $infoPath) {
+                    Get-Content $infoPath -Raw | ConvertFrom-Json
+                } else {
+                    @{ Date = $backup.CreationTime.ToString("yyyy-MM-dd HH:mm:ss"); DatabaseIncluded = $false }
+                }
+                
+                $allBackups += [PSCustomObject]@{
+                    Name = $backup.Name
+                    Path = $backup.FullName
+                    Date = $info.Date
+                    Size = [math]::Round($size, 2)
+                    DatabaseIncluded = $info.DatabaseIncluded
+                    Location = Split-Path $backup.FullName -Parent
+                }
+            }
+        }
+    }
+    
+    if ($allBackups.Count -eq 0) {
+        Write-ColorWarning "`nNo backups found"
+        Write-Host "Create your first backup using the backup option!"
+        return
+    }
+    
+    $allBackups = $allBackups | Sort-Object Date -Descending
+    
+    Write-Host ""
+    $index = 1
+    foreach ($backup in $allBackups) {
+        $dbIndicator = if ($backup.DatabaseIncluded) { "✓ DB" } else { "✗ DB" }
+        Write-Host "  [$index] " -NoNewline -ForegroundColor Cyan
+        Write-Host "$($backup.Date) " -NoNewline -ForegroundColor White
+        Write-Host "($($backup.Size) MB) " -NoNewline -ForegroundColor Gray
+        Write-Host "[$dbIndicator]" -ForegroundColor $(if ($backup.DatabaseIncluded) { "Green" } else { "Yellow" })
+        Write-Host "      Path: $($backup.Path)" -ForegroundColor DarkGray
+        $index++
+    }
+    
+    Write-Host ""
+    Write-ColorInfo "Total backups: $($allBackups.Count)"
+    
+    return $allBackups
+}
+
+# Restore from backup
+function Restore-AppBackup {
+    Write-ColorTitle "`n=== Restore Mai Finances from Backup ==="
+    
+    $backups = Show-Backups
+    
+    if ($backups.Count -eq 0) {
+        return
+    }
+    
+    Write-Host ""
+    $choice = Read-Host "Enter backup number to restore (or Enter to cancel)"
+    
+    if ($choice -eq "") {
+        Write-ColorWarning "Restore cancelled"
+        return
+    }
+    
+    $backupIndex = [int]$choice - 1
+    if ($backupIndex -lt 0 -or $backupIndex -ge $backups.Count) {
+        Write-ColorError "Invalid backup number"
+        return
+    }
+    
+    $backup = $backups[$backupIndex]
+    
+    Write-Host ""
+    Write-ColorWarning "⚠ WARNING: This will restore from backup:"
+    Write-Host "  $($backup.Path)" -ForegroundColor Yellow
+    Write-Host ""
+    Write-ColorWarning "This will:"
+    Write-Host "  • Stop all running servers" -ForegroundColor Yellow
+    Write-Host "  • Restore database (if included)" -ForegroundColor Yellow
+    Write-Host "  • Restore all application files" -ForegroundColor Yellow
+    Write-Host "  • Current files will be OVERWRITTEN" -ForegroundColor Red
+    Write-Host ""
+    
+    $confirm = Read-Host "Type 'RESTORE' to confirm"
+    
+    if ($confirm -ne "RESTORE") {
+        Write-ColorWarning "Restore cancelled"
+        return
+    }
+    
+    try {
+        # Stop all servers
+        Write-ColorInfo "`nStopping servers..."
+        Stop-AdminComplete
+        
+        # Restore database
+        if ($backup.DatabaseIncluded) {
+            Write-ColorInfo "`n[1/5] Restoring database..."
+            $dbBackupPath = Join-Path $backup.Path "database.sql"
+            
+            if (Test-Path $dbBackupPath) {
+                $envPath = Join-Path $ScriptRoot "backend\.env"
+                if (Test-Path $envPath) {
+                    Get-Content $envPath | ForEach-Object {
+                        if ($_ -match '^DATABASE_URL=(.+)$') {
+                            $dbUrl = $matches[1]
+                            
+                            if ($dbUrl -match 'postgres://([^:]+):([^@]+)@([^:]+):(\d+)/(.+)') {
+                                $dbUser = $matches[1]
+                                $dbPass = $matches[2]
+                                $dbHost = $matches[3]
+                                $dbPort = $matches[4]
+                                $dbName = $matches[5]
+                                
+                                $env:PGPASSWORD = $dbPass
+                                & psql -h $dbHost -p $dbPort -U $dbUser -d $dbName -f $dbBackupPath 2>&1 | Out-Null
+                                $env:PGPASSWORD = $null
+                                
+                                Write-ColorSuccess "  ✓ Database restored"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        # Restore backend
+        Write-ColorInfo "`n[2/5] Restoring backend..."
+        robocopy "$($backup.Path)\backend" "$ScriptRoot\backend" /E /NFL /NDL /NJH /NJS | Out-Null
+        Write-ColorSuccess "  ✓ Backend restored"
+        
+        # Restore frontend
+        Write-ColorInfo "`n[3/5] Restoring frontend..."
+        robocopy "$($backup.Path)\frontend" "$ScriptRoot\frontend" /E /NFL /NDL /NJH /NJS | Out-Null
+        Write-ColorSuccess "  ✓ Frontend restored"
+        
+        # Restore admin server
+        Write-ColorInfo "`n[4/5] Restoring admin server..."
+        robocopy "$($backup.Path)\admin-server" "$ScriptRoot\admin-server" /E /NFL /NDL /NJH /NJS | Out-Null
+        Write-ColorSuccess "  ✓ Admin server restored"
+        
+        # Restore admin dashboard
+        Write-ColorInfo "`n[5/5] Restoring admin dashboard..."
+        robocopy "$($backup.Path)\admin-dashboard" "$ScriptRoot\admin-dashboard" /E /NFL /NDL /NJH /NJS | Out-Null
+        Write-ColorSuccess "  ✓ Admin dashboard restored"
+        
+        Write-Host ""
+        Write-ColorSuccess "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        Write-ColorSuccess "✓ Restore completed successfully!"
+        Write-ColorSuccess "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        Write-Host ""
+        Write-ColorInfo "Next steps:"
+        Write-Host "  1. Install dependencies (option 12)" -ForegroundColor Cyan
+        Write-Host "  2. Start servers (option 3)" -ForegroundColor Cyan
+        Write-Host ""
+        
+    } catch {
+        Write-ColorError "`n✗ Restore failed: $($_.Exception.Message)"
+    }
+}
+
+# Configure backup settings
+function Set-BackupConfiguration {
+    Write-ColorTitle "`n=== Backup Configuration ==="
+    
+    $config = Get-BackupConfig
+    
+    Write-Host ""
+    Write-ColorInfo "Current Settings:"
+    Write-Host "  Default Path: $($config.DefaultPath)" -ForegroundColor White
+    Write-Host "  Keep Last N Backups: $($config.KeepLastN)" -ForegroundColor White
+    Write-Host "  Custom Paths: $($config.CustomPaths.Count)" -ForegroundColor White
+    
+    if ($config.CustomPaths.Count -gt 0) {
+        foreach ($path in $config.CustomPaths) {
+            Write-Host "    - $path" -ForegroundColor DarkGray
+        }
+    }
+    
+    Write-Host ""
+    Write-Host "  [1] Change default backup path" -ForegroundColor Cyan
+    Write-Host "  [2] Change retention policy (keep last N)" -ForegroundColor Cyan
+    Write-Host "  [3] Add custom backup path" -ForegroundColor Cyan
+    Write-Host "  [4] Remove custom backup path" -ForegroundColor Cyan
+    Write-Host "  [5] Reset to defaults" -ForegroundColor Yellow
+    Write-Host ""
+    
+    $choice = Read-Host "Enter choice (or Enter to cancel)"
+    
+    switch ($choice) {
+        "1" {
+            $newPath = Read-Host "Enter new default backup path"
+            if ($newPath -ne "") {
+                $config.DefaultPath = $newPath
+                if (-not (Test-Path $newPath)) {
+                    New-Item -ItemType Directory -Path $newPath -Force | Out-Null
+                }
+                Save-BackupConfig -Config $config
+            }
+        }
+        "2" {
+            $newKeep = Read-Host "Keep last N backups"
+            if ($newKeep -match '^\d+$') {
+                $config.KeepLastN = [int]$newKeep
+                Save-BackupConfig -Config $config
+            }
+        }
+        "3" {
+            $newPath = Read-Host "Enter custom backup path"
+            if ($newPath -ne "" -and $newPath -notin $config.CustomPaths) {
+                $config.CustomPaths += $newPath
+                if (-not (Test-Path $newPath)) {
+                    New-Item -ItemType Directory -Path $newPath -Force | Out-Null
+                }
+                Save-BackupConfig -Config $config
+            }
+        }
+        "4" {
+            if ($config.CustomPaths.Count -eq 0) {
+                Write-ColorWarning "No custom paths to remove"
+            } else {
+                for ($i = 0; $i -lt $config.CustomPaths.Count; $i++) {
+                    Write-Host "  [$($i+1)] $($config.CustomPaths[$i])" -ForegroundColor Cyan
+                }
+                $removeIndex = Read-Host "Enter number to remove"
+                if ($removeIndex -match '^\d+$') {
+                    $index = [int]$removeIndex - 1
+                    if ($index -ge 0 -and $index -lt $config.CustomPaths.Count) {
+                        $config.CustomPaths = $config.CustomPaths | Where-Object { $_ -ne $config.CustomPaths[$index] }
+                        Save-BackupConfig -Config $config
+                    }
+                }
+            }
+        }
+        "5" {
+            $confirm = Read-Host "Reset to defaults? (Y/N)"
+            if ($confirm -eq "Y" -or $confirm -eq "y") {
+                $config = @{
+                    DefaultPath = Join-Path $ScriptRoot "backups"
+                    KeepLastN = 10
+                    CustomPaths = @()
+                }
+                Save-BackupConfig -Config $config
+            }
+        }
+    }
+}
+
+# Delete old backups
+function Remove-OldBackups {
+    Write-ColorTitle "`n=== Clean Old Backups ==="
+    
+    $backups = Show-Backups
+    
+    if ($backups.Count -eq 0) {
+        return
+    }
+    
+    Write-Host ""
+    Write-Host "  [1] Delete specific backup" -ForegroundColor Cyan
+    Write-Host "  [2] Keep only last N backups" -ForegroundColor Cyan
+    Write-Host "  [3] Delete all backups" -ForegroundColor Red
+    Write-Host ""
+    
+    $choice = Read-Host "Enter choice (or Enter to cancel)"
+    
+    switch ($choice) {
+        "1" {
+            $backupNum = Read-Host "Enter backup number to delete"
+            if ($backupNum -match '^\d+$') {
+                $index = [int]$backupNum - 1
+                if ($index -ge 0 -and $index -lt $backups.Count) {
+                    $backup = $backups[$index]
+                    $confirm = Read-Host "Delete backup from $($backup.Date)? (Y/N)"
+                    if ($confirm -eq "Y" -or $confirm -eq "y") {
+                        Remove-Item $backup.Path -Recurse -Force
+                        Write-ColorSuccess "Backup deleted"
+                    }
+                }
+            }
+        }
+        "2" {
+            $keepN = Read-Host "Keep how many recent backups?"
+            if ($keepN -match '^\d+$') {
+                $n = [int]$keepN
+                $toDelete = $backups | Select-Object -Skip $n
+                Write-Host "Will delete $($toDelete.Count) backups"
+                $confirm = Read-Host "Continue? (Y/N)"
+                if ($confirm -eq "Y" -or $confirm -eq "y") {
+                    foreach ($backup in $toDelete) {
+                        Remove-Item $backup.Path -Recurse -Force
+                        Write-Host "  Deleted: $($backup.Date)" -ForegroundColor DarkGray
+                    }
+                    Write-ColorSuccess "Old backups deleted"
+                }
+            }
+        }
+        "3" {
+            Write-ColorWarning "This will delete ALL backups!"
+            $confirm = Read-Host "Type 'DELETE ALL' to confirm"
+            if ($confirm -eq "DELETE ALL") {
+                foreach ($backup in $backups) {
+                    Remove-Item $backup.Path -Recurse -Force
+                }
+                Write-ColorSuccess "All backups deleted"
+            }
+        }
+    }
+}
+
 # Show configuration
 function Show-AdminConfiguration {
     Write-ColorTitle "`n=== Admin Configuration ==="
@@ -506,6 +1025,13 @@ function Show-AdminMenu {
     Write-Host "  [14] Clean Install (Reset)" -ForegroundColor Yellow
     Write-Host "  [15] Build for Production" -ForegroundColor Magenta
     Write-Host ""
+    Write-Host "  BACKUP & RESTORE:" -ForegroundColor White
+    Write-Host "  [18] Create Backup" -ForegroundColor Green
+    Write-Host "  [19] List Backups" -ForegroundColor Cyan
+    Write-Host "  [20] Restore from Backup" -ForegroundColor Magenta
+    Write-Host "  [21] Backup Configuration" -ForegroundColor Blue
+    Write-Host "  [22] Clean Old Backups" -ForegroundColor Yellow
+    Write-Host ""
     Write-Host "  INFORMATION OPTIONS:" -ForegroundColor White
     Write-Host "  [16] Show Configuration" -ForegroundColor Blue
     Write-Host "  [17] Check System Requirements" -ForegroundColor Blue
@@ -544,6 +1070,11 @@ if ($Command -eq "") {
             "15" { New-AdminDashboardBuild; $choice = Read-Host "`nPress Enter to continue or enter next choice" }
             "16" { Show-AdminConfiguration; $choice = Read-Host "`nPress Enter to continue or enter next choice" }
             "17" { Test-AdminRequirements; $choice = Read-Host "`nPress Enter to continue or enter next choice" }
+            "18" { New-AppBackup; $choice = Read-Host "`nPress Enter to continue or enter next choice" }
+            "19" { Show-Backups | Out-Null; $choice = Read-Host "`nPress Enter to continue or enter next choice" }
+            "20" { Restore-AppBackup; $choice = Read-Host "`nPress Enter to continue or enter next choice" }
+            "21" { Set-BackupConfiguration; $choice = Read-Host "`nPress Enter to continue or enter next choice" }
+            "22" { Remove-OldBackups; $choice = Read-Host "`nPress Enter to continue or enter next choice" }
             "Q" { Write-ColorSuccess "`nGoodbye!"; exit }
             default { 
                 if ($choice -ne "") {
@@ -574,11 +1105,17 @@ if ($Command -eq "") {
         "build" { New-AdminDashboardBuild }
         "config" { Show-AdminConfiguration }
         "check" { Test-AdminRequirements }
+        "backup" { New-AppBackup }
+        "list-backups" { Show-Backups | Out-Null }
+        "restore" { Restore-AppBackup }
+        "backup-config" { Set-BackupConfiguration }
+        "clean-backups" { Remove-OldBackups }
         default { 
             Write-ColorError "Unknown command: $Command"
             Write-Host "`nAvailable commands:"
-            Write-Host "  start, stop, restart, status, test, logs, open"
-            Write-Host "  install, update, reset, build, config, check"
+            Write-Host "  Control: start, stop, restart, status, test, logs, open"
+            Write-Host "  Maintenance: install, update, reset, build, config, check"
+            Write-Host "  Backup: backup, list-backups, restore, backup-config, clean-backups"
             Write-Host "`nOr run without parameters for interactive menu"
         }
     }

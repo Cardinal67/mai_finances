@@ -57,3 +57,7 @@ backend/uploads/
 # Cursor
 .cursor/
 
+# Backups
+backups/
+.backup-config.json
+
